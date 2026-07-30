@@ -1,280 +1,238 @@
-import { MaimemoClient } from "./client.js";
+import type { MaimemoClient } from "./client.js";
+import { MaimemoError } from "./errors.js";
+import { schemas, type ToolArgs, type ToolName } from "./tools.js";
 
+type Handler<N extends ToolName> = (
+  client: MaimemoClient,
+  args: ToolArgs<N>,
+) => Promise<unknown>;
+
+type HandlerMap = { [N in ToolName]: Handler<N> };
+
+/** Shared helper: turn `{ word } | { voc_id }` into a concrete vocabulary ID. */
+const vocIdOf = (client: MaimemoClient, a: { word?: string; voc_id?: string }) =>
+  client.resolveVocId(a.word, a.voc_id);
+
+const handlers: HandlerMap = {
+  // ---- Vocabulary -------------------------------------------------------
+  get_vocabulary: (client, a) =>
+    client.request("/api/v1/vocabulary", { query: { spelling: a.word } }),
+
+  query_vocabularies: (client, a) =>
+    client.request("/api/v1/vocabulary/query", {
+      method: "POST",
+      body: { spellings: a.spellings ?? [], ids: a.ids ?? [] },
+    }),
+
+  // ---- Notes ------------------------------------------------------------
+  list_notes: async (client, a) =>
+    client.request("/api/v1/notes", { query: { voc_id: await vocIdOf(client, a) } }),
+
+  create_note: async (client, a) =>
+    client.request("/api/v1/notes", {
+      method: "POST",
+      body: { note: { voc_id: await vocIdOf(client, a), note_type: a.note_type, note: a.note } },
+    }),
+
+  update_note: (client, a) =>
+    client.request(`/api/v1/notes/${encodeURIComponent(a.id)}`, {
+      method: "POST",
+      body: { note: { note_type: a.note_type, note: a.note } },
+    }),
+
+  delete_note: (client, a) =>
+    client.request(`/api/v1/notes/${encodeURIComponent(a.id)}`, { method: "DELETE" }),
+
+  // ---- Interpretations --------------------------------------------------
+  list_interpretations: async (client, a) =>
+    client.request("/api/v1/interpretations", { query: { voc_id: await vocIdOf(client, a) } }),
+
+  create_interpretation: async (client, a) =>
+    client.request("/api/v1/interpretations", {
+      method: "POST",
+      body: {
+        interpretation: {
+          voc_id: await vocIdOf(client, a),
+          interpretation: a.interpretation,
+          tags: a.tags ?? [],
+          status: a.status,
+        },
+      },
+    }),
+
+  update_interpretation: (client, a) =>
+    client.request(`/api/v1/interpretations/${encodeURIComponent(a.id)}`, {
+      method: "POST",
+      body: {
+        interpretation: {
+          interpretation: a.interpretation,
+          tags: a.tags ?? [],
+          status: a.status,
+        },
+      },
+    }),
+
+  delete_interpretation: (client, a) =>
+    client.request(`/api/v1/interpretations/${encodeURIComponent(a.id)}`, { method: "DELETE" }),
+
+  // ---- Phrases ----------------------------------------------------------
+  list_phrases: async (client, a) =>
+    client.request("/api/v1/phrases", { query: { voc_id: await vocIdOf(client, a) } }),
+
+  create_phrase: async (client, a) =>
+    client.request("/api/v1/phrases", {
+      method: "POST",
+      body: {
+        phrase: {
+          voc_id: await vocIdOf(client, a),
+          phrase: a.phrase,
+          interpretation: a.interpretation,
+          tags: a.tags ?? [],
+          origin: a.origin ?? "",
+        },
+      },
+    }),
+
+  update_phrase: (client, a) =>
+    client.request(`/api/v1/phrases/${encodeURIComponent(a.id)}`, {
+      method: "POST",
+      body: {
+        phrase: {
+          phrase: a.phrase,
+          interpretation: a.interpretation,
+          tags: a.tags ?? [],
+          origin: a.origin ?? "",
+        },
+      },
+    }),
+
+  delete_phrase: (client, a) =>
+    client.request(`/api/v1/phrases/${encodeURIComponent(a.id)}`, { method: "DELETE" }),
+
+  // ---- Notepads ---------------------------------------------------------
+  list_notepads: (client, a) => {
+    const query: Record<string, string> = {
+      limit: String(a.limit),
+      offset: String(a.offset),
+    };
+    (a.ids ?? []).forEach((id, i) => {
+      query[`ids[${i}]`] = id;
+    });
+    return client.request("/api/v1/notepads", { query });
+  },
+
+  get_notepad: (client, a) =>
+    client.request(`/api/v1/notepads/${encodeURIComponent(a.id)}`),
+
+  create_notepad: (client, a) =>
+    client.request("/api/v1/notepads", {
+      method: "POST",
+      body: {
+        notepad: {
+          status: a.status,
+          content: a.content,
+          title: a.title,
+          brief: a.brief ?? "",
+          tags: a.tags ?? [],
+        },
+      },
+    }),
+
+  update_notepad: (client, a) =>
+    client.request(`/api/v1/notepads/${encodeURIComponent(a.id)}`, {
+      method: "POST",
+      body: {
+        notepad: {
+          status: a.status,
+          content: a.content,
+          title: a.title,
+          brief: a.brief ?? "",
+          tags: a.tags ?? [],
+        },
+      },
+    }),
+
+  delete_notepad: (client, a) =>
+    client.request(`/api/v1/notepads/${encodeURIComponent(a.id)}`, { method: "DELETE" }),
+
+  // ---- Study ------------------------------------------------------------
+  get_study_progress: (client) =>
+    client.request("/api/v1/study/get_study_progress", { method: "POST", body: {} }),
+
+  // These two endpoints accept spellings natively, so we pass them straight
+  // through instead of burning an extra vocabulary lookup against the quota.
+  get_today_items: (client, a) =>
+    client.request("/api/v1/study/get_today_items", {
+      method: "POST",
+      body: {
+        voc_ids: a.voc_ids ?? [],
+        spellings: a.spellings ?? [],
+        limit: a.limit,
+        ...(a.is_finished === undefined ? {} : { is_finished: a.is_finished }),
+        ...(a.is_new === undefined ? {} : { is_new: a.is_new }),
+      },
+    }),
+
+  query_study_records: (client, a) =>
+    client.request("/api/v1/study/query_study_records", {
+      method: "POST",
+      body: {
+        voc_ids: a.voc_ids ?? [],
+        spellings: a.spellings ?? [],
+        as_count: a.as_count,
+        limit: a.limit,
+        ...(a.next_study_start || a.next_study_end
+          ? {
+              next_study_date: {
+                start: a.next_study_start,
+                end: a.next_study_end,
+              },
+            }
+          : {}),
+      },
+    }),
+
+  add_words: async (client, a) => {
+    const vocIds = await client.resolveVocIds(a.spellings ?? [], a.voc_ids ?? []);
+    return client.request("/api/v1/study/add_words", {
+      method: "POST",
+      body: { words: vocIds.map((id) => ({ id })), advance: a.advance },
+    });
+  },
+
+  advance_study: async (client, a) => {
+    const vocIds = await client.resolveVocIds(a.spellings ?? [], a.voc_ids ?? []);
+    return client.request("/api/v1/study/advance_study", {
+      method: "POST",
+      body: { voc_ids: vocIds },
+    });
+  },
+};
+
+/**
+ * Validates arguments against the tool's schema, then dispatches. Validation
+ * errors are surfaced as `invalid_input` so the model can self-correct.
+ */
 export async function handleToolCall(
   client: MaimemoClient,
   name: string,
-  args: Record<string, unknown>,
+  rawArgs: unknown,
 ): Promise<unknown> {
-  switch (name) {
-    case "get_vocabulary": {
-      const word = String(args.word);
-      return client.request("/api/v1/vocabulary", { query: { spelling: word } });
-    }
-
-    case "query_vocabularies": {
-      const spellings = (args.spellings as string[]) ?? [];
-      const ids = (args.ids as string[]) ?? [];
-      return client.request("/api/v1/vocabulary/query", {
-        method: "POST",
-        body: { spellings, ids },
-      });
-    }
-
-    case "list_notes": {
-      const vocId = await client.resolveVocId(
-        args.word as string | undefined,
-        args.voc_id as string | undefined,
-      );
-      return client.request("/api/v1/notes", { query: { voc_id: vocId } });
-    }
-
-    case "create_note": {
-      const vocId = await client.resolveVocId(
-        args.word as string | undefined,
-        args.voc_id as string | undefined,
-      );
-      return client.request("/api/v1/notes", {
-        method: "POST",
-        body: {
-          note: {
-            voc_id: vocId,
-            note_type: String(args.note_type),
-            note: String(args.note),
-          },
-        },
-      });
-    }
-
-    case "update_note": {
-      return client.request(`/api/v1/notes/${args.id}`, {
-        method: "POST",
-        body: {
-          note: {
-            note_type: String(args.note_type),
-            note: String(args.note),
-          },
-        },
-      });
-    }
-
-    case "delete_note": {
-      return client.request(`/api/v1/notes/${args.id}`, { method: "DELETE" });
-    }
-
-    case "list_interpretations": {
-      const vocId = await client.resolveVocId(
-        args.word as string | undefined,
-        args.voc_id as string | undefined,
-      );
-      return client.request("/api/v1/interpretations", { query: { voc_id: vocId } });
-    }
-
-    case "create_interpretation": {
-      const vocId = await client.resolveVocId(
-        args.word as string | undefined,
-        args.voc_id as string | undefined,
-      );
-      return client.request("/api/v1/interpretations", {
-        method: "POST",
-        body: {
-          interpretation: {
-            voc_id: vocId,
-            interpretation: String(args.interpretation),
-            tags: (args.tags as string[]) ?? [],
-            status: String(args.status),
-          },
-        },
-      });
-    }
-
-    case "update_interpretation": {
-      return client.request(`/api/v1/interpretations/${args.id}`, {
-        method: "POST",
-        body: {
-          interpretation: {
-            interpretation: String(args.interpretation),
-            tags: (args.tags as string[]) ?? [],
-            status: String(args.status),
-          },
-        },
-      });
-    }
-
-    case "delete_interpretation": {
-      return client.request(`/api/v1/interpretations/${args.id}`, { method: "DELETE" });
-    }
-
-    case "list_phrases": {
-      const vocId = await client.resolveVocId(
-        args.word as string | undefined,
-        args.voc_id as string | undefined,
-      );
-      return client.request("/api/v1/phrases", { query: { voc_id: vocId } });
-    }
-
-    case "create_phrase": {
-      const vocId = await client.resolveVocId(
-        args.word as string | undefined,
-        args.voc_id as string | undefined,
-      );
-      return client.request("/api/v1/phrases", {
-        method: "POST",
-        body: {
-          phrase: {
-            voc_id: vocId,
-            phrase: String(args.phrase),
-            interpretation: String(args.interpretation),
-            tags: (args.tags as string[]) ?? [],
-            origin: (args.origin as string) ?? "",
-          },
-        },
-      });
-    }
-
-    case "update_phrase": {
-      return client.request(`/api/v1/phrases/${args.id}`, {
-        method: "POST",
-        body: {
-          phrase: {
-            phrase: String(args.phrase),
-            interpretation: String(args.interpretation),
-            tags: (args.tags as string[]) ?? [],
-            origin: String(args.origin),
-          },
-        },
-      });
-    }
-
-    case "delete_phrase": {
-      return client.request(`/api/v1/phrases/${args.id}`, { method: "DELETE" });
-    }
-
-    case "list_notepads": {
-      const limit = (args.limit as number) ?? 10;
-      const offset = (args.offset as number) ?? 0;
-      const ids = (args.ids as string[]) ?? [];
-      const query: Record<string, string> = {
-        limit: String(limit),
-        offset: String(offset),
-      };
-      ids.forEach((id, i) => {
-        query[`ids[${i}]`] = id;
-      });
-      return client.request("/api/v1/notepads", { query });
-    }
-
-    case "get_notepad": {
-      return client.request(`/api/v1/notepads/${args.id}`, { method: "GET" });
-    }
-
-    case "create_notepad": {
-      return client.request("/api/v1/notepads", {
-        method: "POST",
-        body: {
-          notepad: {
-            status: (args.status as string) ?? "PUBLISHED",
-            content: String(args.content),
-            title: String(args.title),
-            brief: (args.brief as string) ?? "",
-            tags: (args.tags as string[]) ?? [],
-          },
-        },
-      });
-    }
-
-    case "update_notepad": {
-      return client.request(`/api/v1/notepads/${args.id}`, {
-        method: "POST",
-        body: {
-          notepad: {
-            status: String(args.status),
-            content: String(args.content),
-            title: String(args.title),
-            brief: (args.brief as string) ?? "",
-            tags: (args.tags as string[]) ?? [],
-          },
-        },
-      });
-    }
-
-    case "delete_notepad": {
-      return client.request(`/api/v1/notepads/${args.id}`, { method: "DELETE" });
-    }
-
-    case "get_study_progress": {
-      return client.request("/api/v1/study/get_study_progress", {
-        method: "POST",
-        body: {},
-      });
-    }
-
-    case "get_today_items": {
-      const vocIds = await client.resolveVocIds(
-        args.spellings as string[] | undefined,
-        args.voc_ids as string[] | undefined,
-      );
-      const body: Record<string, unknown> = {
-        voc_ids: vocIds,
-        spellings: [],
-        limit: (args.limit as number) ?? 50,
-      };
-      if (args.is_finished !== undefined) body.is_finished = args.is_finished;
-      if (args.is_new !== undefined) body.is_new = args.is_new;
-      return client.request("/api/v1/study/get_today_items", {
-        method: "POST",
-        body,
-      });
-    }
-
-    case "query_study_records": {
-      const vocIds = await client.resolveVocIds(
-        args.spellings as string[] | undefined,
-        args.voc_ids as string[] | undefined,
-      );
-      const body: Record<string, unknown> = {
-        voc_ids: vocIds,
-        spellings: [],
-        as_count: (args.as_count as boolean) ?? false,
-        limit: (args.limit as number) ?? 50,
-      };
-      if (args.next_study_start || args.next_study_end) {
-        body.next_study_date = {
-          start: args.next_study_start,
-          end: args.next_study_end,
-        };
-      }
-      return client.request("/api/v1/study/query_study_records", {
-        method: "POST",
-        body,
-      });
-    }
-
-    case "add_words": {
-      const vocIds = await client.resolveVocIds(
-        args.spellings as string[] | undefined,
-        args.voc_ids as string[] | undefined,
-      );
-      return client.request("/api/v1/study/add_words", {
-        method: "POST",
-        body: {
-          words: vocIds.map((id) => ({ id })),
-          advance: (args.advance as boolean) ?? false,
-        },
-      });
-    }
-
-    case "advance_study": {
-      const vocIds = await client.resolveVocIds(
-        args.spellings as string[] | undefined,
-        args.voc_ids as string[] | undefined,
-      );
-      return client.request("/api/v1/study/advance_study", {
-        method: "POST",
-        body: { voc_ids: vocIds },
-      });
-    }
-
-    default:
-      throw new Error(`Unknown tool: ${name}`);
+  if (!(name in schemas)) {
+    throw new MaimemoError(`Unknown tool: ${name}`, { code: "invalid_input" });
   }
+
+  const toolName = name as ToolName;
+  const parsed = schemas[toolName].safeParse(rawArgs ?? {});
+  if (!parsed.success) {
+    throw new MaimemoError(
+      `Invalid arguments for ${toolName}: ${parsed.error.issues
+        .map((i) => `${i.path.join(".") || "(root)"} ${i.message}`)
+        .join("; ")}`,
+      { code: "invalid_input" },
+    );
+  }
+
+  const handler = handlers[toolName] as Handler<ToolName>;
+  return handler(client, parsed.data as ToolArgs<ToolName>);
 }
