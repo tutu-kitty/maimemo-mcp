@@ -1,0 +1,33 @@
+{
+  "name": "mcp-server-maimemo",
+  "version": "1.0.0",
+  "description": "MCP server for 墨墨背单词 (Maimemo) Open API, covering vocabulary, notes, interpretations, phrases, notepads, and study data.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-server-maimemo": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "inspect": "npx @modelcontextprotocol/inspector dist/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "maimemo",
+    "墨墨背单词",
+    "model-context-protocol"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
