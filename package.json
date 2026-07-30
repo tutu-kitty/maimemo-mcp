@@ -1,33 +1,49 @@
 {
   "name": "mcp-server-maimemo",
-  "version": "1.0.0",
-  "description": "MCP server for 墨墨背单词 (Maimemo) Open API, covering vocabulary, notes, interpretations, phrases, notepads, and study data.",
+  "version": "2.0.0",
+  "description": "MCP server for \u58a8\u58a8\u80cc\u5355\u8bcd (Maimemo) Open API, covering vocabulary, notes, interpretations, phrases, notepads, and study data.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "mcp-server-maimemo": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
-    "inspect": "npx @modelcontextprotocol/inspector dist/index.js"
+    "start:stdio": "MAIMEMO_MCP_TRANSPORT=stdio node dist/index.js",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "mcp",
     "maimemo",
-    "墨墨背单词",
-    "model-context-protocol"
+    "\u58a8\u58a8\u80cc\u5355\u8bcd",
+    "model-context-protocol",
+    "streamable-http",
+    "vocabulary"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mrquj/mcp-server-maimemo.git"
+  },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.10.0"
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "zod": "^3.24.1",
+    "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^5.8.0"
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   }
 }
