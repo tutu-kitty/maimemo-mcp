@@ -1,0 +1,39 @@
+services:
+  maimemo-mcp:
+    build: .
+    image: mcp-server-maimemo:latest
+    container_name: maimemo-mcp
+    restart: unless-stopped
+    # Bind to loopback only. Nginx terminates TLS and proxies in.
+    # Change to "3000:3000" only if you intend to expose the port directly.
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      MAIMEMO_MCP_TRANSPORT: http
+      PORT: 3000
+      HOST: 0.0.0.0
+      MAIMEMO_API_TOKEN: ${MAIMEMO_API_TOKEN:-}
+      MAIMEMO_REQUIRE_CLIENT_TOKEN: ${MAIMEMO_REQUIRE_CLIENT_TOKEN:-false}
+      MAIMEMO_REQUEST_TIMEOUT_MS: ${MAIMEMO_REQUEST_TIMEOUT_MS:-20000}
+      MAIMEMO_MAX_RETRIES: ${MAIMEMO_MAX_RETRIES:-3}
+      MAIMEMO_RATE_LIMITS: ${MAIMEMO_RATE_LIMITS:-10s:20,60s:40,5h:2000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 256M

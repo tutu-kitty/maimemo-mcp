@@ -1,0 +1,45 @@
+# systemd unit for running mcp-server-maimemo directly with Node (no Docker).
+#
+#   sudo cp deploy/maimemo-mcp.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now maimemo-mcp
+#   sudo systemctl status maimemo-mcp
+#   journalctl -u maimemo-mcp -f
+
+[Unit]
+Description=Maimemo MCP Server
+Documentation=https://github.com/Mrquj/mcp-server-maimemo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=maimemo
+Group=maimemo
+WorkingDirectory=/opt/mcp-server-maimemo
+EnvironmentFile=/opt/mcp-server-maimemo/.env
+ExecStart=/usr/bin/node /opt/mcp-server-maimemo/dist/index.js
+Restart=always
+RestartSec=5
+
+# Logs go to the journal.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=maimemo-mcp
+
+# ---- Hardening -------------------------------------------------------------
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mcp-server-maimemo
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target
