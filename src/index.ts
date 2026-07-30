@@ -28,10 +28,17 @@ if (transportType === "stdio") {
         const transport = new SSEServerTransport("/messages", res);
         const server = createMcpServer(client);
         transports.set(transport.sessionId, transport);
-        await server.connect(transport);
+
         req.on("close", () => {
           transports.delete(transport.sessionId);
+          try {
+            server.close();
+          } catch {
+            // ignore errors during cleanup
+          }
         });
+
+        await server.connect(transport);
         return;
       }
 
