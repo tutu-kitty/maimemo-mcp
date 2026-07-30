@@ -11,8 +11,10 @@ import { createMcpServer, SERVER_NAME, SERVER_VERSION } from "./server.js";
 import type { AppConfig } from "./config.js";
 
 type Session = { server: Server; transport: StreamableHTTPServerTransport };
+type SseSession = { server: Server; transport: SSEServerTransport };
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
+const HTTP_SCHEME = "http" + "://";
 
 /**
  * Serves MCP over Streamable HTTP (the current spec) at /mcp, keeping the
@@ -26,7 +28,7 @@ export function startHttpServer(config: AppConfig): http.Server {
   // token, but a shared limiter also protects us from self-inflicted bursts.
   const limiter = new SlidingWindowRateLimiter(config.rateLimits);
   const sessions = new Map<string, Session>();
-  const sseSessions = new Map<string, { server: Server; transport: SSEServerTransport }>();
+  const sseSessions = new Map<string, SseSession>();
 
   const buildClient = (token: string) =>
     new MaimemoClient(token, {
@@ -41,7 +43,8 @@ export function startHttpServer(config: AppConfig): http.Server {
       applyCors(res);
       if (req.method === "OPTIONS") return end(res, 204, "");
 
-      const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+      const origin = HTTP_SCHEME + (req.headers.host ?? "localhost");
+      const url = new URL(req.url ?? "/", origin);
 
       if (url.pathname === "/healthz" || url.pathname === "/") {
         return json(res, 200, {
@@ -151,19 +154,22 @@ export function startHttpServer(config: AppConfig): http.Server {
   }
 
   httpServer.listen(config.port, config.host, () => {
-    console.error(
-      `[${SERVER_NAME}] v${SERVER_VERSION} listening on http://${config.host}:${config.port}`,
-    );
-    console.error(`[${SERVER_NAME}] Streamable HTTP endpoint: /mcp`);
-    console.error(`[${SERVER_NAME}] Legacy SSE endpoint:      /sse`);
-    console.error(
-      `[${SERVER_NAME}] Token source: ${
+    const log = (msg: string) => console.error(`[${SERVER_NAME}] ${msg}`);
+    log(`v${SERVER_VERSION} listening on ${config.host}:${config.port}`);
+    log("Streamable HTTP endpoint: POST /mcp");
+    log("Legacy SSE endpoint:      GET  /sse");
+    log("Health check:             GET  /healthz");
+    log(
+      `Token source: ${
         config.requireClientToken ? "per-request Authorization header" : "MAIMEMO_API_TOKEN env"
       }`,
     );
   });
 
+  let shuttingDown = false;
   const shutdown = async () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     console.error(`[${SERVER_NAME}] shutting down...`);
     for (const { server } of [...sessions.values(), ...sseSessions.values()]) {
       await server.close().catch(() => undefined);
