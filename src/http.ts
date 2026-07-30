@@ -138,11 +138,14 @@ export function startHttpServer(config: AppConfig): http.Server {
       });
     }
 
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-      onsessioninitialized: (id) => sessions.set(id, { server, transport }),
-    });
     const server = createMcpServer(buildClient(token));
+    let transport: StreamableHTTPServerTransport;
+    transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+      onsessioninitialized: (id: string): void => {
+        sessions.set(id, { server, transport });
+      },
+    });
 
     transport.onclose = () => {
       if (transport.sessionId) sessions.delete(transport.sessionId);
