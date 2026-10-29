@@ -17,8 +17,8 @@ export type AppConfig = {
   logLevel: "debug" | "info" | "warn" | "error" | "silent";
 };
 
-function intFromEnv(name: string, fallback: number): number {
-  const raw = process.env[name];
+function intFromEnv(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
+  const raw = env[name];
   if (!raw) return fallback;
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -27,8 +27,8 @@ function intFromEnv(name: string, fallback: number): number {
   return parsed;
 }
 
-function boolFromEnv(name: string, fallback: boolean): boolean {
-  const raw = process.env[name]?.trim().toLowerCase();
+function boolFromEnv(env: NodeJS.ProcessEnv, name: string, fallback: boolean): boolean {
+  const raw = env[name]?.trim().toLowerCase();
   if (!raw) return fallback;
   if (["1", "true", "yes", "on"].includes(raw)) return true;
   if (["0", "false", "no", "off"].includes(raw)) return false;
@@ -54,7 +54,7 @@ export function loadConfig(env = process.env): AppConfig {
           })();
 
   const token = env.MAIMEMO_API_TOKEN?.trim() || undefined;
-  const requireClientToken = boolFromEnv("MAIMEMO_REQUIRE_CLIENT_TOKEN", !token);
+  const requireClientToken = boolFromEnv(env, "MAIMEMO_REQUIRE_CLIENT_TOKEN", !token);
 
   if (transport === "stdio" && !token) {
     throw new Error(
@@ -74,11 +74,11 @@ export function loadConfig(env = process.env): AppConfig {
   return {
     token,
     transport,
-    port: intFromEnv("PORT", 3000),
+    port: intFromEnv(env, "PORT", 3000),
     host: env.HOST?.trim() || "0.0.0.0",
     baseUrl: env.MAIMEMO_API_BASE_URL?.trim() || "https://open.maimemo.com/open/",
-    requestTimeoutMs: intFromEnv("MAIMEMO_REQUEST_TIMEOUT_MS", 20_000),
-    maxRetries: intFromEnv("MAIMEMO_MAX_RETRIES", 3),
+    requestTimeoutMs: intFromEnv(env, "MAIMEMO_REQUEST_TIMEOUT_MS", 20_000),
+    maxRetries: intFromEnv(env, "MAIMEMO_MAX_RETRIES", 3),
     rateLimits,
     requireClientToken,
     logLevel: (env.LOG_LEVEL?.trim().toLowerCase() as AppConfig["logLevel"]) || "info",
