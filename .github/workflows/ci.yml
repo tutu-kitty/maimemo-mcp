@@ -23,13 +23,16 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Typecheck
         run: npm run typecheck
 
       - name: Build
         run: npm run build
+
+      - name: Unit tests
+        run: npm test
 
       - name: Smoke test (tools/list over stdio)
         env:
@@ -42,6 +45,7 @@ jobs:
             '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
             | node dist/index.js | tee /tmp/out.jsonl
           grep -q '"get_vocabulary"' /tmp/out.jsonl
+          grep -q '"get_token_status"' /tmp/out.jsonl
 
   docker:
     runs-on: ubuntu-latest
