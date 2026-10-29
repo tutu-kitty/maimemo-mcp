@@ -167,6 +167,13 @@ export const schemas = {
     .refine((v) => (v.voc_ids?.length ?? 0) + (v.spellings?.length ?? 0) > 0, {
       message: "Provide at least one entry in `voc_ids` or `spellings`.",
     }),
+
+  get_token_status: z.object({
+    probe: z
+      .boolean()
+      .default(true)
+      .describe("Make a live API call to confirm the token still works. Set false to only read local bookkeeping."),
+  }),
 } as const;
 
 export type ToolName = keyof typeof schemas;
@@ -214,6 +221,12 @@ const meta: Record<ToolName, Meta> = {
   query_study_records: { title: "Query study records", description: "Query study records, optionally filtered by next-study date window.", readOnly: true },
   add_words: { title: "Add words to study", description: "Add words to the study plan, optionally advancing their review." },
   advance_study: { title: "Advance study", description: "Bring forward the next review for the given words." },
+  get_token_status: {
+    title: "Get token status",
+    description:
+      "Check whether the configured Maimemo API token still works, and how close it is to the documented 7-day expiry. Use this when the user asks why a call failed with an auth error, or when they want to know how long the token will keep working.",
+    readOnly: true,
+  },
 };
 
 function toJsonSchema(schema: z.ZodTypeAny): Tool["inputSchema"] {

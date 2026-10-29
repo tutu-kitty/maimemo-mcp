@@ -1,5 +1,6 @@
 import type { MaimemoClient } from "./client.js";
 import { MaimemoError } from "./errors.js";
+import { getTokenStatus } from "./token-status.js";
 import { schemas, type ToolArgs, type ToolName } from "./tools.js";
 
 type Handler<N extends ToolName> = (
@@ -207,6 +208,11 @@ const handlers: HandlerMap = {
       body: { voc_ids: vocIds },
     });
   },
+
+  // ---- Token health ------------------------------------------------------
+  // Local addition: MaiMemo has no token-introspection endpoint, so expiry is
+  // tracked by probing and recording the first moment the token was seen working.
+  get_token_status: (client, a) => getTokenStatus(client, { probe: a.probe }),
 };
 
 /**

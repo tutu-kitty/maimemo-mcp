@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { MaimemoError, errorFromStatus } from "./errors.js";
 import {
   DEFAULT_RATE_LIMITS,
@@ -51,6 +52,14 @@ export class MaimemoClient {
     this.limiter =
       options.rateLimiter ??
       new SlidingWindowRateLimiter(options.rateLimits ?? DEFAULT_RATE_LIMITS);
+  }
+
+  /**
+   * Stable, non-reversible fingerprint of the active token.
+   * Lets callers correlate a token across restarts without ever exposing it.
+   */
+  tokenFingerprint(): string {
+    return createHash("sha256").update(this.token).digest("hex").slice(0, 16);
   }
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
