@@ -44,7 +44,7 @@ Allow inbound TCP on:
 SSH in, then:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Mrquj/mcp-server-maimemo/main/deploy/deploy.sh -o deploy.sh
+curl -fsSL https://raw.githubusercontent.com/tutu-kitty/mcp-server-maimemo/main/deploy/deploy.sh -o deploy.sh
 chmod +x deploy.sh
 sudo ./deploy.sh
 ```
@@ -55,7 +55,7 @@ for your token, builds the image, and starts the container.
 Expected output ends with a healthy JSON response from `/healthz`.
 
 > If GitHub is slow or blocked from your CVM, clone through a mirror instead:
-> `git clone --depth 1 https://gitclone.com/github.com/Mrquj/mcp-server-maimemo.git /opt/mcp-server-maimemo`
+> `git clone --depth 1 https://gitclone.com/github.com/tutu-kitty/mcp-server-maimemo.git /opt/mcp-server-maimemo`
 > then `cd /opt/mcp-server-maimemo && cp .env.example .env`, edit `.env`, and run
 > `docker compose up -d --build`.
 
@@ -180,7 +180,7 @@ local MCP clients, but **not** for hosted clients — those need a public HTTPS 
 
 ```bash
 sudo useradd -r -s /bin/false maimemo
-sudo git clone --depth 1 https://github.com/Mrquj/mcp-server-maimemo.git /opt/mcp-server-maimemo
+sudo git clone --depth 1 https://github.com/tutu-kitty/mcp-server-maimemo.git /opt/mcp-server-maimemo
 cd /opt/mcp-server-maimemo
 
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -

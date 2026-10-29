@@ -4,7 +4,7 @@
 # Ubuntu 22.04+ or Debian 12+). Docker-based.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/Mrquj/mcp-server-maimemo/main/deploy/deploy.sh -o deploy.sh
+#   curl -fsSL https://raw.githubusercontent.com/tutu-kitty/mcp-server-maimemo/main/deploy/deploy.sh -o deploy.sh
 #   chmod +x deploy.sh
 #   sudo ./deploy.sh
 #
@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-REPO_URL="https://github.com/Mrquj/mcp-server-maimemo.git"
+REPO_URL="https://github.com/tutu-kitty/mcp-server-maimemo.git"
 APP_DIR="/opt/mcp-server-maimemo"
 
 log() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }

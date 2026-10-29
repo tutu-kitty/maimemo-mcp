@@ -8,7 +8,7 @@
 
 [Unit]
 Description=Maimemo MCP Server
-Documentation=https://github.com/Mrquj/mcp-server-maimemo
+Documentation=https://github.com/tutu-kitty/mcp-server-maimemo
 After=network-online.target
 Wants=network-online.target
 
@@ -21,6 +21,12 @@ EnvironmentFile=/opt/mcp-server-maimemo/.env
 ExecStart=/usr/bin/node /opt/mcp-server-maimemo/dist/index.js
 Restart=always
 RestartSec=5
+
+# Token-health bookkeeping lives outside the project tree: ProtectHome=true
+# makes the default XDG location unwritable, and without this the tool would
+# silently fail to record a baseline on every start.
+StateDirectory=maimemo-mcp
+Environment=MAIMEMO_TOKEN_STATE_DIR=/var/lib/maimemo-mcp
 
 # Logs go to the journal.
 StandardOutput=journal
