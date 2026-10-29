@@ -1,6 +1,6 @@
 {
   "name": "mcp-server-maimemo",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "MCP server for \u58a8\u58a8\u80cc\u5355\u8bcd (Maimemo) Open API, covering vocabulary, notes, interpretations, phrases, notepads, and study data.",
   "type": "module",
   "main": "dist/index.js",
@@ -12,9 +12,14 @@
     "README.md",
     "LICENSE"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tutu-kitty/mcp-server-maimemo.git"
+  },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "start:stdio": "MAIMEMO_MCP_TRANSPORT=stdio node dist/index.js",
@@ -30,10 +35,6 @@
     "vocabulary"
   ],
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Mrquj/mcp-server-maimemo.git"
-  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.0",
     "zod": "^3.24.1",

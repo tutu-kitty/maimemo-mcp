@@ -10,7 +10,8 @@ import { handleToolCall } from "./handlers.js";
 import { TOOLS } from "./tools.js";
 
 export const SERVER_NAME = "maimemo";
-export const SERVER_VERSION = "2.0.0";
+/** Kept in sync with package.json — test/config.test.mjs guards the two. */
+export const SERVER_VERSION = "2.1.0";
 
 /** Builds a fresh MCP server bound to one user's Maimemo client. */
 export function createMcpServer(client: MaimemoClient): Server {
