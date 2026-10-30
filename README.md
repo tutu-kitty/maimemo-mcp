@@ -197,6 +197,48 @@ your Maimemo API token. Otherwise the server falls back to `MAIMEMO_API_TOKEN`.
 }
 ```
 
+### SullyOS（浏览器里的虚拟手机）
+
+SullyOS 自带 MCP 客户端，能直接接本服务器。设置 → **MCP 服务器** → 添加服务器：
+
+| 字段 | 值 |
+| --- | --- |
+| 名称 | `maimemo (墨墨背单词)` |
+| 服务器 URL | `https://your-domain.example.com/mcp`（**无尾斜杠**） |
+| 鉴权 | 静态 Bearer Token，填你的墨墨 API token（或自定义 `Authorization` 请求头） |
+
+三点说明：
+
+- **不需要 CORS 代理**。本服务器已经返回浏览器直连所需的全部响应头（包括最容易漏掉的
+  `Access-Control-Expose-Headers: Mcp-Session-Id`），所以 SullyOS 里「代理 URL」留空即可。
+- **加工具后要重新点一次「测试连接」**。SullyOS 只在测试连接时拉取工具清单并缓存，
+  本服务器升级了工具列表的话，回设置重新测一次才会看到新工具。
+- 删除类工具（`delete_note`、`delete_notepad` 等）已标 `destructiveHint`，SullyOS 会自动弹确认窗。
+
+> SullyOS 本身是「源码可见、非开放源代码授权」的项目，这里只说明接入方式，不涉及它的代码。
+
+SullyOS ships its own MCP client and can talk to this server directly. In
+**设置 → MCP 服务器**, add a server with:
+
+| Field | Value |
+| --- | --- |
+| Name | `maimemo (墨墨背单词)` |
+| Server URL | `https://your-domain.example.com/mcp` (**no trailing slash**) |
+| Auth | A static Bearer token — your Maimemo API token (or a custom `Authorization` header) |
+
+Three notes:
+
+- **No CORS proxy needed.** This server already returns every response header a browser
+  needs for a direct connection, including the commonly-missed
+  `Access-Control-Expose-Headers: Mcp-Session-Id`, so leave the "proxy URL" field empty.
+- **Re-test the connection after upgrading.** SullyOS fetches and caches the tool list
+  only when you test the connection; new tools appear after you test again.
+- Delete tools (`delete_note`, `delete_notepad`, …) are annotated with `destructiveHint`,
+  so SullyOS asks for confirmation before running them.
+
+> SullyOS itself is source-available under a non-open-source license; this section only
+> describes how to connect to it.
+
 ### MCP Inspector
 
 ```bash
