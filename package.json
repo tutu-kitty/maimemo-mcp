@@ -1,7 +1,7 @@
 {
   "name": "maimemo-mcp",
   "version": "2.1.0",
-  "description": "MCP server for \u58a8\u58a8\u80cc\u5355\u8bcd (Maimemo) Open API, covering vocabulary, notes, interpretations, phrases, notepads, and study data.",
+  "description": "MCP server that lets AI assistants call the \u58a8\u58a8\u80cc\u5355\u8bcd (Maimemo) Open API \u2014 vocabulary, notes, interpretations, phrases, notepads, and study data.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

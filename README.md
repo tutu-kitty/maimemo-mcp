@@ -1,9 +1,15 @@
 # maimemo-mcp
 
-An MCP (Model Context Protocol) server for the **墨墨背单词 (Maimemo) Open API**.
-It exposes every documented API capability as a typed MCP tool, so AI assistants can
-look up words, manage mnemonics / interpretations / example sentences, maintain cloud
-notepads, and read or modify study plans.
+**Let your AI assistant drive 墨墨背单词 (Maimemo) for you.**
+
+This is an MCP (Model Context Protocol) server that puts the **墨墨背单词 (Maimemo)
+Open API** behind MCP tools. Connect it to any MCP client — Claude, an IDE assistant,
+a chat app — and the AI can query your dictionary, write your mnemonics and
+interpretations, manage your cloud notepads, and read or change your study plan,
+without you touching the app.
+
+In other words: you talk to the AI, the AI talks to 墨墨背单词 on your behalf, and your
+vocabulary data stays in your own account.
 
 [![CI](https://github.com/tutu-kitty/maimemo-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/tutu-kitty/maimemo-mcp/actions/workflows/ci.yml)
 
@@ -13,6 +19,21 @@ notepads, and read or modify study plans.
 > terms, with the original copyright notice preserved in [LICENSE](LICENSE).
 > Adds a token-health tool, a test suite, and a few deployment fixes — see
 > [Differences from upstream](#differences-from-upstream).
+
+---
+
+## What you can ask your AI
+
+Once this server is connected, prompts like these work as-is:
+
+- 「*apple* 在墨墨里是什么释义？」 → `get_vocabulary`
+- 「帮我给这批词各编一个谐音」 → `create_note`
+- 「把我今天的生词加进云词本『考研核心』」 → `add_words`, `update_notepad`
+- 「今天背了多少个？还剩多少？」 → `get_study_progress`, `get_today_items`
+- 「我的 token 还剩几天过期？」 → `get_token_status`
+
+Every call goes through the official Open API with your own token — the assistant
+never sees or stores your account credentials.
 
 ---
 
@@ -54,6 +75,9 @@ raw `voc_id`. Read-only tools are annotated with `readOnlyHint`, and delete tool
 ---
 
 ## Getting a token
+
+The token is what lets the AI act on your 墨墨背单词 account — the AI calls the Open API
+with it, and the data it reads or writes is yours.
 
 In the Maimemo app: **我的 → 更多设置 → 实验功能 → 开放 API**
 
@@ -106,6 +130,9 @@ Invalid configuration fails fast at startup with an explicit message.
 ---
 
 ## Connecting clients
+
+Any MCP client works. The client talks to this server; the server talks to 墨墨背单词;
+the assistant never talks to the API directly.
 
 ### Remote clients (Notion, and other hosted MCP clients)
 
