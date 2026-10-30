@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish (e.g. v2.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      # A single self-contained file: a phone can run it without npm install.
+      - name: Build the single-file bundle
+        run: npm run bundle
+
+      - name: Package the source tree
+        run: tar -czf maimemo-mcp-source.tar.gz --exclude=node_modules --exclude=dist .
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: ${{ inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/maimemo-mcp.cjs
+            maimemo-mcp-source.tar.gz
+          body: |
+            ## Downloads
+
+            - `maimemo-mcp.cjs` — a single self-contained file. Run it with
+              `node maimemo-mcp.cjs`; no `npm install`, no build step.
+            - `maimemo-mcp-source.tar.gz` — the full source tree.
+
+            ## Running it on an Android phone (no VPS)
+
+            ```bash
+            curl -fL -o maimemo-mcp.cjs \
+              https://github.com/tutu-kitty/maimemo-mcp/releases/latest/download/maimemo-mcp.cjs
+            node maimemo-mcp.cjs
+            ```
+
+            Then point your MCP client at `http://127.0.0.1:9103/mcp`.
+            See `docs/PHONE.md` for the full walkthrough.
