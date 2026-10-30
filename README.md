@@ -1,13 +1,16 @@
-# mcp-server-maimemo
+# maimemo-mcp
 
 An MCP (Model Context Protocol) server for the **墨墨背单词 (Maimemo) Open API**.
 It exposes every documented API capability as a typed MCP tool, so AI assistants can
 look up words, manage mnemonics / interpretations / example sentences, maintain cloud
 notepads, and read or modify study plans.
 
-[![CI](https://github.com/tutu-kitty/mcp-server-maimemo/actions/workflows/ci.yml/badge.svg)](https://github.com/tutu-kitty/mcp-server-maimemo/actions/workflows/ci.yml)
+[![CI](https://github.com/tutu-kitty/maimemo-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/tutu-kitty/maimemo-mcp/actions/workflows/ci.yml)
 
-> A fork of [Mrquj/mcp-server-maimemo](https://github.com/Mrquj/mcp-server-maimemo) (MIT).
+> **This is a fork of the upstream project
+> [Mrquj/mcp-server-maimemo](https://github.com/Mrquj/mcp-server-maimemo) (MIT).**
+> It is not the upstream release; it is a derivative work kept under the same MIT
+> terms, with the original copyright notice preserved in [LICENSE](LICENSE).
 > Adds a token-health tool, a test suite, and a few deployment fixes — see
 > [Differences from upstream](#differences-from-upstream).
 
@@ -59,8 +62,8 @@ In the Maimemo app: **我的 → 更多设置 → 实验功能 → 开放 API**
 ## Quick start
 
 ```bash
-git clone https://github.com/tutu-kitty/mcp-server-maimemo.git
-cd mcp-server-maimemo
+git clone https://github.com/tutu-kitty/maimemo-mcp.git
+cd maimemo-mcp
 npm install
 npm run build
 
@@ -77,8 +80,8 @@ curl http://localhost:3000/healthz
 ### Docker
 
 ```bash
-docker build -t mcp-server-maimemo .
-docker run -p 3000:3000 -e MAIMEMO_API_TOKEN=your_token mcp-server-maimemo
+docker build -t maimemo-mcp .
+docker run -p 3000:3000 -e MAIMEMO_API_TOKEN=your_token maimemo-mcp
 ```
 
 ---
@@ -95,7 +98,7 @@ docker run -p 3000:3000 -e MAIMEMO_API_TOKEN=your_token mcp-server-maimemo
 | `MAIMEMO_MAX_RETRIES` | `3` | Retry attempts for transient failures. |
 | `MAIMEMO_RATE_LIMITS` | `10s:20,60s:40,5h:2000` | Client-side throttling windows. |
 | `MAIMEMO_API_BASE_URL` | `https://open.maimemo.com/open/` | Override the API base. |
-| `MAIMEMO_TOKEN_STATE_DIR` | `$XDG_STATE_HOME/mcp-server-maimemo` | Where token-health bookkeeping is written. |
+| `MAIMEMO_TOKEN_STATE_DIR` | `$XDG_STATE_HOME/maimemo-mcp` | Where token-health bookkeeping is written. |
 | `MAIMEMO_TOKEN_TTL_DAYS` | `7` | Assumed token lifetime, used to estimate expiry. |
 
 Invalid configuration fails fast at startup with an explicit message.
@@ -122,7 +125,7 @@ your Maimemo API token. Otherwise the server falls back to `MAIMEMO_API_TOKEN`.
   "mcpServers": {
     "maimemo": {
       "command": "node",
-      "args": ["/absolute/path/to/mcp-server-maimemo/dist/index.js"],
+      "args": ["/absolute/path/to/maimemo-mcp/dist/index.js"],
       "env": {
         "MAIMEMO_MCP_TRANSPORT": "stdio",
         "MAIMEMO_API_TOKEN": "your_token_here"
@@ -247,6 +250,19 @@ starts a fresh baseline and a crash mid-write cannot corrupt the record.
 
 ---
 
-## License
+## Credits and license
+
+This project is a fork of **[Mrquj/mcp-server-maimemo](https://github.com/Mrquj/mcp-server-maimemo)**,
+originally written by Mrquj and the upstream contributors. Upstream is MIT licensed, and this
+fork stays under the same terms:
+
+```
+MIT License
+
+Copyright (c) 2026 mcp-server-maimemo contributors
+```
+
+The full text is in [LICENSE](LICENSE), unchanged from upstream. The changes made in this
+fork are listed under [Differences from upstream](#differences-from-upstream).
 
 MIT

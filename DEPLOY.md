@@ -44,19 +44,19 @@ Allow inbound TCP on:
 SSH in, then:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tutu-kitty/mcp-server-maimemo/main/deploy/deploy.sh -o deploy.sh
+curl -fsSL https://raw.githubusercontent.com/tutu-kitty/maimemo-mcp/main/deploy/deploy.sh -o deploy.sh
 chmod +x deploy.sh
 sudo ./deploy.sh
 ```
 
-It installs Docker if missing, clones the repo to `/opt/mcp-server-maimemo`, prompts
+It installs Docker if missing, clones the repo to `/opt/maimemo-mcp`, prompts
 for your token, builds the image, and starts the container.
 
 Expected output ends with a healthy JSON response from `/healthz`.
 
 > If GitHub is slow or blocked from your CVM, clone through a mirror instead:
-> `git clone --depth 1 https://gitclone.com/github.com/tutu-kitty/mcp-server-maimemo.git /opt/mcp-server-maimemo`
-> then `cd /opt/mcp-server-maimemo && cp .env.example .env`, edit `.env`, and run
+> `git clone --depth 1 https://gitclone.com/github.com/tutu-kitty/maimemo-mcp.git /opt/maimemo-mcp`
+> then `cd /opt/maimemo-mcp && cp .env.example .env`, edit `.env`, and run
 > `docker compose up -d --build`.
 
 ---
@@ -79,7 +79,7 @@ dig +short mcp.yourdomain.com
 sudo apt-get update && sudo apt-get install -y nginx certbot python3-certbot-nginx
 
 # Install the site config
-sudo cp /opt/mcp-server-maimemo/deploy/nginx.conf /etc/nginx/sites-available/maimemo-mcp
+sudo cp /opt/maimemo-mcp/deploy/nginx.conf /etc/nginx/sites-available/maimemo-mcp
 sudo sed -i 's/mcp.example.com/mcp.yourdomain.com/g' /etc/nginx/sites-available/maimemo-mcp
 sudo ln -sf /etc/nginx/sites-available/maimemo-mcp /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -136,7 +136,7 @@ token baked into `.env`.
 ## Operations
 
 ```bash
-cd /opt/mcp-server-maimemo
+cd /opt/maimemo-mcp
 
 docker compose logs -f          # tail logs
 docker compose restart          # restart
@@ -144,7 +144,7 @@ docker compose down             # stop
 sudo ./deploy/deploy.sh         # pull latest + rebuild
 ```
 
-Edit configuration in `/opt/mcp-server-maimemo/.env`, then `docker compose up -d`.
+Edit configuration in `/opt/maimemo-mcp/.env`, then `docker compose up -d`.
 
 ---
 
@@ -180,15 +180,15 @@ local MCP clients, but **not** for hosted clients — those need a public HTTPS 
 
 ```bash
 sudo useradd -r -s /bin/false maimemo
-sudo git clone --depth 1 https://github.com/tutu-kitty/mcp-server-maimemo.git /opt/mcp-server-maimemo
-cd /opt/mcp-server-maimemo
+sudo git clone --depth 1 https://github.com/tutu-kitty/maimemo-mcp.git /opt/maimemo-mcp
+cd /opt/maimemo-mcp
 
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 sudo npm install && sudo npm run build
 sudo cp .env.example .env && sudo nano .env       # set MAIMEMO_API_TOKEN
-sudo chown -R maimemo:maimemo /opt/mcp-server-maimemo
+sudo chown -R maimemo:maimemo /opt/maimemo-mcp
 sudo chmod 600 .env
 
 sudo cp deploy/maimemo-mcp.service /etc/systemd/system/

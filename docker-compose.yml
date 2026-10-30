@@ -1,7 +1,7 @@
 services:
   maimemo-mcp:
     build: .
-    image: mcp-server-maimemo:latest
+    image: maimemo-mcp:latest
     container_name: maimemo-mcp
     restart: unless-stopped
     # Bind to loopback only. Nginx terminates TLS and proxies in.

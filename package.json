@@ -1,11 +1,11 @@
 {
-  "name": "mcp-server-maimemo",
+  "name": "maimemo-mcp",
   "version": "2.1.0",
   "description": "MCP server for \u58a8\u58a8\u80cc\u5355\u8bcd (Maimemo) Open API, covering vocabulary, notes, interpretations, phrases, notepads, and study data.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "mcp-server-maimemo": "dist/index.js"
+    "maimemo-mcp": "dist/index.js"
   },
   "files": [
     "dist",
@@ -14,7 +14,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tutu-kitty/mcp-server-maimemo.git"
+    "url": "git+https://github.com/tutu-kitty/maimemo-mcp.git"
   },
   "scripts": {
     "build": "tsc",

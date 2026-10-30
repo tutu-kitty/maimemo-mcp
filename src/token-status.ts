@@ -64,7 +64,7 @@ function stateDir(): string {
   const configured = process.env.MAIMEMO_TOKEN_STATE_DIR?.trim();
   if (configured) return configured;
   const stateHome = process.env.XDG_STATE_HOME?.trim() || join(homedir(), ".local", "state");
-  return join(stateHome, "mcp-server-maimemo");
+  return join(stateHome, "maimemo-mcp");
 }
 
 function stateFile(): string {
