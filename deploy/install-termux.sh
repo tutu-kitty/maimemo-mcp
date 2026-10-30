@@ -44,8 +44,12 @@ if [ ! -f maimemo-mcp.cjs ]; then
   say "Installing Node.js dependencies…"
   npm config set registry https://registry.npmmirror.com >/dev/null 2>&1 || true
   command -v git >/dev/null 2>&1 || pkg install -y git
-  rm -rf src
-  git clone --depth 1 https://github.com/tutu-kitty/maimemo-mcp.git . || die "Clone failed."
+  # git clone refuses a non-empty target, so clone beside it and move in.
+  rm -rf .build-tmp
+  git clone --depth 1 https://github.com/tutu-kitty/maimemo-mcp.git .build-tmp \
+    || die "Clone failed."
+  cp -a .build-tmp/. .
+  rm -rf .build-tmp/.git
   npm ci --no-audit --no-fund || die "npm ci failed."
   npm run build || die "Build failed."
   npm run bundle || die "Bundle failed."
@@ -74,6 +78,11 @@ EOF
   chmod 600 .env
   say "Saved to $HOME_DIR/.env (mode 600)."
 fi
+
+# Read the token back so the summary below can show the exact JSON to import.
+# shellcheck disable=SC1091
+MAIMEMO_TOKEN=$(sed -n 's/^MAIMEMO_API_TOKEN=//p' "$HOME_DIR/.env" | head -1)
+[ -n "$MAIMEMO_TOKEN" ] || die "No token found in $HOME_DIR/.env"
 
 # --- Run ---------------------------------------------------------------------
 cat > run.sh <<EOF
