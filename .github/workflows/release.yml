@@ -37,7 +37,11 @@ jobs:
         run: npm run bundle
 
       - name: Package the source tree
-        run: tar -czf maimemo-mcp-source.tar.gz --exclude=node_modules --exclude=dist --exclude=.git .
+        run: |
+          tar -czf maimemo-mcp-source.tar.gz \
+            --exclude=node_modules --exclude=dist --exclude=.git \
+            --exclude=maimemo-mcp-source.tar.gz .
+
 
       - name: Publish the release
         uses: softprops/action-gh-release@v2

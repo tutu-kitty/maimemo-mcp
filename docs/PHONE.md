@@ -162,7 +162,7 @@ tmux attach -t maimemo              # 回头看日志
 
 - 改 `.env` 里的 `MAIMEMO_API_TOKEN` → 重启进程
 - 或者**只把 token 放在客户端**（服务端不设 `MAIMEMO_API_TOKEN`，
-  改设 `MAIMEMO_REQUIRE_CLIENT_TOKEN=*** → **只改客户端那一处，不用重启服务**
+  改设 `MAIMEMO_REQUIRE_CLIENT_TOKEN=true → **只改客户端那一处，不用重启服务**
 
 第 25 个工具 `get_token_status` 就是干这个的：告诉你还剩几天、什么时候该换。
 
@@ -300,7 +300,7 @@ HOST=0.0.0.0
 ```
 
 ⚠️ 这样一来同网段任何人都能调你的工具。**请务必同时设**
-`MAIMEMO_REQUIRE_CLIENT_TOKEN=*** 让每个人带自己的 token，
+`MAIMEMO_REQUIRE_CLIENT_TOKEN=true 让每个人带自己的 token，
 并且别在公共 Wi-Fi 下这么做。
 
 ---

@@ -132,7 +132,7 @@ curl http://localhost:3000/healthz
 
 ```bash
 docker build -t maimemo-mcp .
-docker run -p 3000:3000 -e MAIMEMO_API_TOKEN=*** maimemo-mcp
+docker run -p 3000:3000 -e MAIMEMO_API_TOKEN=your_token maimemo-mcp
 ```
 
 ---
@@ -175,9 +175,9 @@ Deploy behind HTTPS, then register the MCP server URL:
 https://your-domain.example.com/mcp
 ```
 
-如果设了 `MAIMEMO_REQUIRE_CLIENT_TOKEN=***`，就把连接用的 Bearer token 设成你的墨墨 API token；否则服务端回落到用 `MAIMEMO_API_TOKEN`。
+如果设了 `MAIMEMO_REQUIRE_CLIENT_TOKEN=true`，就把连接用的 Bearer token 设成你的墨墨 API token；否则服务端回落到用 `MAIMEMO_API_TOKEN`。
 
-If you set `MAIMEMO_REQUIRE_CLIENT_TOKEN=*** configure the connection's Bearer token to
+If you set `MAIMEMO_REQUIRE_CLIENT_TOKEN=true configure the connection's Bearer token to
 your Maimemo API token. Otherwise the server falls back to `MAIMEMO_API_TOKEN`.
 
 ### 本地客户端（Claude Desktop 等）/ Local clients (Claude Desktop, and similar)
