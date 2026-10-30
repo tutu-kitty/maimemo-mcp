@@ -247,6 +247,27 @@ npm run inspect
 
 ---
 
+## 在手机上跑 / Running on your phone
+
+没有 VPS 也能用。这个 server 可以直接跑在你自己手机上，数据只从手机出去。
+
+No VPS needed — the server runs on your own phone and your data leaves the phone
+only to reach the official Maimemo API.
+
+```bash
+# Termux on Android — 一条命令
+curl -fsSL https://raw.githubusercontent.com/tutu-kitty/maimemo-mcp/main/deploy/install-termux.sh | bash
+```
+
+然后客户端填 `http://127.0.0.1:9103/mcp`（无尾斜杠）。
+
+完整步骤、局域网用法、iOS 用户的共享实例方案、以及踩坑清单，见 **[docs/PHONE.md](docs/PHONE.md)**。
+
+Full walkthrough, LAN usage, the shared-instance option for iOS, and the
+pitfall list are in **[docs/PHONE.md](docs/PHONE.md)**.
+
+---
+
 ## 端点 / Endpoints
 
 | 方法 Method | 路径 Path | 用途 Purpose |

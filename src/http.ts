@@ -5,7 +5,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { MaimemoClient } from "./client.js";
+import { MaimemoClient, tokenFingerprint } from "./client.js";
 import { SlidingWindowRateLimiter } from "./rate-limiter.js";
 import { createMcpServer, SERVER_NAME, SERVER_VERSION } from "./server.js";
 import type { AppConfig } from "./config.js";
@@ -24,9 +24,19 @@ const HTTP_SCHEME = "http" + "://";
  * which makes a single deployment safely usable by more than one person.
  */
 export function startHttpServer(config: AppConfig): http.Server {
-  // One limiter for the whole process: the quota is enforced by Maimemo per
-  // token, but a shared limiter also protects us from self-inflicted bursts.
-  const limiter = new SlidingWindowRateLimiter(config.rateLimits);
+  // One sliding window per token, not one per process: Maimemo enforces its
+  // quota per API token, so a single shared window would let one person's
+  // burst starve everybody else on a shared deployment.
+  const limiters = new Map<string, SlidingWindowRateLimiter>();
+  const limiterFor = (token: string): SlidingWindowRateLimiter => {
+    const key = tokenFingerprint(token);
+    let limiter = limiters.get(key);
+    if (!limiter) {
+      limiter = new SlidingWindowRateLimiter(config.rateLimits);
+      limiters.set(key, limiter);
+    }
+    return limiter;
+  };
   const sessions = new Map<string, Session>();
   const sseSessions = new Map<string, SseSession>();
 
@@ -35,7 +45,7 @@ export function startHttpServer(config: AppConfig): http.Server {
       baseUrl: config.baseUrl,
       timeoutMs: config.requestTimeoutMs,
       maxRetries: config.maxRetries,
-      rateLimiter: limiter,
+      rateLimiter: limiterFor(token),
     });
 
   const httpServer = http.createServer(async (req, res) => {
@@ -54,7 +64,8 @@ export function startHttpServer(config: AppConfig): http.Server {
           transport: "streamable-http",
           endpoints: { mcp: "/mcp", legacySse: "/sse" },
           sessions: sessions.size + sseSessions.size,
-          rateLimit: limiter.snapshot(),
+          rateLimit: config.rateLimits.map((w) => ({ ...w, used: 0 })),
+          rateLimitTokens: limiters.size,
         });
       }
 

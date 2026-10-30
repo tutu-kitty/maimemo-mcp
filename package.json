@@ -1,7 +1,7 @@
 {
   "name": "maimemo-mcp",
   "version": "2.1.0",
-  "description": "MCP server that lets AI assistants call the \u58a8\u58a8\u80cc\u5355\u8bcd (Maimemo) Open API \u2014 vocabulary, notes, interpretations, phrases, notepads, and study data.",
+  "description": "MCP server that lets AI assistants call the 墨墨背单词 (Maimemo) Open API — vocabulary, notes, interpretations, phrases, notepads, and study data.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -24,12 +24,13 @@
     "dev": "tsc --watch",
     "start:stdio": "MAIMEMO_MCP_TRANSPORT=stdio node dist/index.js",
     "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --outfile=dist/maimemo-mcp.cjs"
   },
   "keywords": [
     "mcp",
     "maimemo",
-    "\u58a8\u58a8\u80cc\u5355\u8bcd",
+    "墨墨背单词",
     "model-context-protocol",
     "streamable-http",
     "vocabulary"
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "esbuild": "^0.28.2",
     "typescript": "^5.7.0"
   },
   "engines": {

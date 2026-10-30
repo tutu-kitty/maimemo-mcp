@@ -20,7 +20,7 @@ export type MaimemoClientOptions = {
   timeoutMs?: number;
   maxRetries?: number;
   rateLimits?: RateLimitWindow[];
-  /** Shared across clients so per-user tokens still respect one global quota. */
+  /** The window this client is subject to. One per token, not one per process. */
   rateLimiter?: SlidingWindowRateLimiter;
 };
 
@@ -33,6 +33,16 @@ type Envelope<T> = {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+/**
+ * Stable, non-reversible fingerprint of a token.
+ *
+ * Callers use it to key per-token state (rate limiting, token bookkeeping)
+ * without ever holding on to the token itself.
+ */
+export function tokenFingerprint(token: string): string {
+  return createHash("sha256").update(token).digest("hex").slice(0, 16);
+}
 
 export class MaimemoClient {
   private readonly token: string;
@@ -59,7 +69,7 @@ export class MaimemoClient {
    * Lets callers correlate a token across restarts without ever exposing it.
    */
   tokenFingerprint(): string {
-    return createHash("sha256").update(this.token).digest("hex").slice(0, 16);
+    return tokenFingerprint(this.token);
   }
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
