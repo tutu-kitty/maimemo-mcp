@@ -38,9 +38,11 @@ jobs:
 
       - name: Package the source tree
         run: |
-          tar -czf maimemo-mcp-source.tar.gz \
-            --exclude=node_modules --exclude=dist --exclude=.git \
-            --exclude=maimemo-mcp-source.tar.gz .
+          # The archive must land outside the tree it archives: writing it
+          # inside makes tar abort with "file changed as we read it".
+          tar -czf "$RUNNER_TEMP/maimemo-mcp-source.tar.gz" \
+            --exclude=node_modules --exclude=dist --exclude=.git .
+          cp "$RUNNER_TEMP/maimemo-mcp-source.tar.gz" .
 
 
       - name: Publish the release
