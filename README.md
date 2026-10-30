@@ -254,17 +254,31 @@ npm run inspect
 No VPS needed — the server runs on your own phone and your data leaves the phone
 only to reach the official Maimemo API.
 
+### A. Android：全本地，数据不离开手机
+
 ```bash
 # Termux on Android — 一条命令
 curl -fsSL https://raw.githubusercontent.com/tutu-kitty/maimemo-mcp/main/deploy/install-termux.sh | bash
 ```
 
-然后客户端填 `http://127.0.0.1:9103/mcp`（无尾斜杠）。
+服务只监听 `127.0.0.1`，客户端填 `http://127.0.0.1:9103/mcp`（无尾斜杠）。
 
-完整步骤、局域网用法、iOS 用户的共享实例方案、以及踩坑清单，见 **[docs/PHONE.md](docs/PHONE.md)**。
+### B. 共享实例：iOS 走这条，客户端什么都不用装
 
-Full walkthrough, LAN usage, the shared-instance option for iOS, and the
-pitfall list are in **[docs/PHONE.md](docs/PHONE.md)**.
+一台机器跑服务，**每个人带自己的墨墨 token**，服务端不持有任何人的凭据：
+
+```bash
+# 服务端：不设 MAIMEMO_API_TOKEN，强制客户端带 token
+MAIMEMO_REQUIRE_CLIENT_TOKEN=true
+MAIMEMO_MCP_TRANSPORT=http
+```
+
+客户端填 `https://<你的实例>/mcp` + 请求头 `Authorization: Bearer 你的token`。
+
+两条路线的完整步骤、局域网用法、以及踩坑清单，见 **[docs/PHONE.md](docs/PHONE.md)**。
+
+Both routes have full walkthroughs, plus LAN usage and the pitfall list, in
+**[docs/PHONE.md](docs/PHONE.md)**.
 
 ---
 

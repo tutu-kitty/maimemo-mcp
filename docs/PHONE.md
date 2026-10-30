@@ -16,7 +16,8 @@
 | **B. 共享实例** | 任意（含 iOS） | 无 | 手机 → 公共实例 → 墨墨 | ★☆☆ |
 | **C. 免服务器** | 任意 | 无 | 手机 → Cloudflare 边缘 → 墨墨 | ★★☆ |
 
-先讲 A（最常见、最私密），B 和 C 在最后一节。
+A 和 B 下面都有完整步骤。A 最私密（数据根本不离开手机），B 最省事（客户端什么都不用装）。
+C 是长期方向，现在还跑不起来。
 
 ---
 
@@ -169,14 +170,71 @@ tmux attach -t maimemo              # 回头看日志
 
 ## B. 共享实例（iOS 的人走这条）
 
-服务端**不持有任何人的凭据**：
+一台机器跑服务，所有人用同一个地址，**每个人带自己的墨墨 token**。
+服务端不持有任何人的凭据。
 
-```bash
-MAIMEMO_REQUIRE_CLIENT_TOKEN=***   # 强制客户端带 token
-# 不设 MAIMEMO_API_TOKEN           # 服务端零凭据
+iOS 没有 Termux，这条是 iOS 上唯一不用折腾终端的办法。
+
+### 它长什么样
+
+```
+   你的 iPhone ──┐
+   别人的安卓 ───┤
+                │  各自带自己的 Bearer token
+                ▼
+        https://<实例>/mcp
+                │  服务端只转发，不留存
+                │  按 token 指纹分桶限流
+                ▼
+         open.maimemo.com
 ```
 
-每个人在客户端填自己的墨墨 token 就能用，服务端只做转发。
+### 服务端怎么配
+
+关键是**服务端不放 token**，改成强制客户端带：
+
+```bash
+MAIMEMO_REQUIRE_CLIENT_TOKEN=true
+# 不设 MAIMEMO_API_TOKEN            # 服务端零凭据
+MAIMEMO_MCP_TRANSPORT=http
+PORT=3000
+HOST=0.0.0.0
+```
+
+这样服务端永远不持有任何人的墨墨 token，它只是个转发器。
+
+### 宿主机从哪来（都不需要 VPS）
+
+| 宿主机 | 怎么跑 | 适合 |
+|---|---|---|
+| 家里常开的电脑 / NAS / 树莓派 | `deploy/deploy.sh` 或 docker compose | 家里有台常开的机器 |
+| 一台闲置的安卓手机 | Termux（跟 A 一样），再装 Tailscale | 没有电脑但有旧手机 |
+| Cloudflare Tunnel | 本机跑 server，只把 tunnel 指向它 | 有机器，但不想要公网端口 |
+| 任何便宜的小主机 | docker compose | 愿意每月花几块钱 |
+
+Docker 最省事：
+
+```bash
+git clone https://github.com/tutu-kitty/maimemo-mcp.git && cd maimemo-mcp
+cp .env.example .env
+# 改 .env：MAIMEMO_REQUIRE_CLIENT_TOKEN=true，MAIMEMO_API_TOKEN 留空
+docker compose up -d
+```
+
+`docker-compose.yml` 默认只绑 `127.0.0.1`（`MAIMEMO_HOST_BIND`），前面再挡一层
+nginx / Caddy 终止 TLS —— `deploy/nginx.conf` 是现成的。
+
+### 客户端怎么填
+
+不管哪个客户端，都是这三样：
+
+| 字段 | 值 |
+| --- | --- |
+| 类型 | Streamable HTTP |
+| URL | `https://<你的实例>/mcp` ← **无尾斜杠** |
+| 请求头 | `Authorization` / `Bearer 你自己的墨墨token` |
+
+JSON 导入格式：
 
 ```json
 {
@@ -190,8 +248,21 @@ MAIMEMO_REQUIRE_CLIENT_TOKEN=***   # 强制客户端带 token
 }
 ```
 
-服务端会**按 token 指纹分桶限流**（每个 token 一个独立滑动窗口），
-所以一个人连发不会吃掉别人的额度。
+iOS 上的 MCP 客户端（支持 Streamable HTTP 的那些）填法完全一样。
+
+### 为什么这样安全
+
+- **服务端零凭据**：它只做转发，不存任何人的 token
+- **按 token 分桶限流**：每个人一个独立滑动窗口，一个人连发不会吃掉别人的额度
+- **换 token 不用重启服务**：token 在客户端，7 天到期时只改客户端那一处
+
+### 但要注意
+
+- **没有墨墨 token 的人调不动它** —— 但 URL 一旦泄露，任何人都能拿它当探测跳板。
+  前面挡一层反代校验 `Authorization` 头（SullyOS 那类客户端会原样透传 Bearer，正好用得上）。
+- **别把 `MAIMEMO_API_TOKEN` 和 `MAIMEMO_REQUIRE_CLIENT_TOKEN=true` 一起设**
+  —— 前者是服务端兜底 token，设了就等于把所有人的调用都记在你自己头上。
+- **CORS 已经配好了**，浏览器直连不需要额外代理。
 
 ---
 
