@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Launchd job for maimemo-mcp on macOS.
+
+  Install:
+    1. Edit the three paths below: the node binary, the server script, and the
+       log file. KeepAlive + RunAtLoad start it at login.
+    2. cp com.example.maimemo-mcp.plist ~/Library/LaunchAgents/
+    3. launchctl load ~/Library/LaunchAgents/com.example.maimemo-mcp.plist
+    4. launchctl list | grep maimemo     # check it is running
+       tail -f ~/.maimemo-mcp/server.log  # watch the logs
+
+  To unload:
+    launchctl unload ~/Library/LaunchAgents/com.example.maimemo-mcp.plist
+
+  A job in ~/Library/LaunchAgents/ starts when the user logs in. Put the file
+  in /Library/LaunchDaemons/ instead to start it at boot without a login —
+  that directory needs root, and the paths must be absolute and owned by root.
+
+  The environment below matches the "client sends its own token" setup, so
+  this job holds no Maimemo credential. To keep the token on the server
+  instead, add MAIMEMO_API_TOKEN and drop MAIMEMO_REQUIRE_CLIENT_TOKEN.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.example.maimemo-mcp</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <!-- Absolute path to the node binary (brew installs it under /opt/homebrew on Apple silicon) -->
+    <string>/opt/homebrew/bin/node</string>
+    <!-- Absolute path to the single-file build -->
+    <string>/Users/YOU/.maimemo-mcp/maimemo-mcp.cjs</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/YOU/.maimemo-mcp</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>MAIMEMO_REQUIRE_CLIENT_TOKEN</key>
+    <string>true</string>
+    <key>MAIMEMO_MCP_TRANSPORT</key>
+    <string>http</string>
+    <key>HOST</key>
+    <string>127.0.0.1</string>
+    <key>PORT</key>
+    <string>9103</string>
+    <key>MAIMEMO_TOKEN_STATE_DIR</key>
+    <string>/Users/YOU/.maimemo-mcp/state</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/YOU/.maimemo-mcp/server.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/YOU/.maimemo-mcp/server.log</string>
+</dict>
+</plist>

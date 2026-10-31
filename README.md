@@ -259,6 +259,9 @@ only to reach the official Maimemo API.
 ```bash
 # Termux on Android — 一条命令
 curl -fsSL https://raw.githubusercontent.com/tutu-kitty/maimemo-mcp/main/deploy/install-termux.sh | bash
+
+# 服务端不持有 token，token 只放客户端（手机上的首选：过期只改客户端）
+curl -fsSL https://raw.githubusercontent.com/tutu-kitty/maimemo-mcp/main/deploy/install-termux.sh | bash -s -- --client-token-only
 ```
 
 服务只监听 `127.0.0.1`，客户端填 `http://127.0.0.1:9103/mcp`（无尾斜杠）。
@@ -278,7 +281,55 @@ MAIMEMO_MCP_TRANSPORT=http
 两条路线的完整步骤、局域网用法、以及踩坑清单，见 **[docs/PHONE.md](docs/PHONE.md)**。
 
 Both routes have full walkthroughs, plus LAN usage and the pitfall list, in
-**[docs/PHONE.md](docs/PHONE.md)**.
+**[docs/PHONE.md](docs/PHONE.md)**。
+
+---
+
+## 在自己的电脑上跑 / Running on your own computer
+
+Mac、Linux、Windows 都可以。它就是一个 Node 进程，放哪都能跑，数据只从你这台机器出去。
+
+Mac, Linux, and Windows all work — it is a plain Node process, and your data
+leaves your machine only to reach the official Maimemo API.
+
+```bash
+# 装 Node 20+，然后下单个文件（1.4 MB，零依赖，不需要 npm install）
+mkdir -p ~/.maimemo-mcp && cd ~/.maimemo-mcp
+curl -fL -o maimemo-mcp.cjs \
+  https://github.com/tutu-kitty/maimemo-mcp/releases/latest/download/maimemo-mcp.cjs
+```
+
+写一个 `~/.maimemo-mcp/.env`（详见 **[docs/SELF-HOST.md](docs/SELF-HOST.md)**）：
+
+```ini
+# 服务端不持有 token，每个客户端带自己的 —— 机器睡着/换 token 都不用管服务端
+MAIMEMO_REQUIRE_CLIENT_TOKEN=true
+MAIMEMO_MCP_TRANSPORT=http
+HOST=127.0.0.1
+PORT=9103
+MAIMEMO_TOKEN_STATE_DIR=/home/<you>/.maimemo-mcp/state
+```
+
+```bash
+cd ~/.maimemo-mcp && set -a; . ./.env; set +a
+node maimemo-mcp.cjs
+# [maimemo] v2.1.0 listening on 127.0.0.1:9103
+```
+
+客户端填 `http://127.0.0.1:9103/mcp`（无尾斜杠）+ 请求头 `Authorization: Bearer <你的 token>`。
+
+| 系统 | 开机自启 |
+|---|---|
+| Linux | `deploy/maimemo-mcp.service`（systemd） |
+| macOS | `deploy/maimemo-mcp.plist`（launchd） |
+| Windows | 任务计划程序 |
+
+让同一局域网 / 私有网络里的别的设备也能连、或者公开到公网 —— 以及各自的
+安全注意事项 —— 见 **[docs/SELF-HOST.md](docs/SELF-HOST.md)**。
+
+To reach the server from other devices on your LAN or private network, or to
+expose it publicly — and the security caveats for each — see
+**[docs/SELF-HOST.md](docs/SELF-HOST.md)**.
 
 ---
 

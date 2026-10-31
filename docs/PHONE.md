@@ -166,6 +166,17 @@ tmux attach -t maimemo              # 回头看日志
 
 第 25 个工具 `get_token_status` 就是干这个的：告诉你还剩几天、什么时候该换。
 
+> **手机上的首选是第二种**：手机随时可能被系统杀进程，
+> 「服务端持有 token」意味着过期时你得重新起一次服务。
+> 装的时候就选客户端持有：
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/tutu-kitty/maimemo-mcp/main/deploy/install-termux.sh | bash -s -- --client-token-only
+> ```
+>
+> 装完 `.env` 里就没有 `MAIMEMO_API_TOKEN` 了，只有 `MAIMEMO_REQUIRE_CLIENT_TOKEN=true`。
+> 以后换 token 只改橘瓣里的 Header，手机上什么都不用动。
+
 ---
 
 ## B. 共享实例（iOS 的人走这条）
@@ -307,7 +318,9 @@ HOST=0.0.0.0
 
 ## 相关文件
 
-- `deploy/install-termux.sh` —— 一键安装脚本
+- `deploy/install-termux.sh` —— 一键安装脚本（`--client-token-only` 让服务端不持有 token）
 - `deploy/maimemo-mcp.service` —— systemd 单元（Linux 机器上跑）
+- `deploy/maimemo-mcp.plist` —— launchd 作业（macOS）
+- `docs/SELF-HOST.md` —— 跑在 Mac / Linux / Windows 上（电脑自托管、局域网、私有网络、公网）
 - `DEPLOY.md` —— 服务器 / Docker 部署
 - `README.md` —— 工具列表与配置项
