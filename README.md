@@ -580,7 +580,7 @@ starts a fresh baseline and a crash mid-write cannot corrupt the record.
 没测过、没记过 token、限流是整个进程共用一个窗口，手机上装不起来，也没法直接发给别人用。
 本 fork 把「一个人真的在用」当成第一需求，把这些补齐了。
 
-| | 上游 upstream | 本 fork this fork |
+| | 上游 upstream | 本项目 this fork |
 | --- | --- | --- |
 | 工具 Tools | 24 | **25**（多一个 `get_token_status`） |
 | 限流 Rate limiting | 全进程共用一个滑动窗口 | **按 token 指纹分桶**，各人各算额度 |
