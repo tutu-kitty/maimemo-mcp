@@ -18,14 +18,14 @@ In other words: you talk to the AI, the AI talks to 墨墨背单词 on your beha
 
 > **这是上游 [Mrquj/mcp-server-maimemo](https://github.com/Mrquj/mcp-server-maimemo) (MIT) 的 fork。**
 > 它不是上游原版，而是同 MIT 条款下的衍生作品，上游原始版权声明原样保留在 [LICENSE](LICENSE)。
-> 相比上游多了 token 健康检查工具、测试套件和若干部署修复 —— 见[相对上游的改动](#differences-from-upstream)。
+> 相比上游多了 token 健康检查工具、按 token 分桶限流、测试套件和若干部署方式 —— 见[相对上游的改动](#differences-from-upstream)。
 >
 > **This is a fork of the upstream project
 > [Mrquj/mcp-server-maimemo](https://github.com/Mrquj/mcp-server-maimemo) (MIT).**
-> It is not the upstream release; it is a derivative work kept under the same MIT
+> It is not the upstream release, but a derivative work kept under the same MIT
 > terms, with the original copyright notice preserved in [LICENSE](LICENSE).
-> Adds a token-health tool, a test suite, and a few deployment fixes — see
-> [Differences from upstream](#differences-from-upstream).
+> Adds a token-health tool, per-token rate limiting, a test suite, and several
+> ways to deploy — see [Differences from upstream](#differences-from-upstream).
 
 ---
 
@@ -53,10 +53,13 @@ never sees or stores your account credentials.
 - **API 全覆盖** —— 25 个工具，涵盖官方文档里全部六类资源，外加一个专门诊断 API token 自身的工具。
 - **Streamable HTTP 传输** —— 当前 MCP 规范，入口在 `POST /mcp`。已废弃的 HTTP+SSE 传输仍在 `GET /sse` 上保留，兼容老客户端。
 - **按请求携带 token** —— 客户端可以自己发 `Authorization: Bearer <maimemo_token>`，所以一套部署可以安全地服务多个人；每个会话拿到独立的 API 客户端。
-- **内置限流** —— 多窗口滑动日志把流量整形成墨墨的配额形状（默认 10s/20、60s/40、5h/2000），而不是让模型随机撞 429。
+- **按 token 分桶限流** —— 墨墨的配额是**按 API token** 记的，所以滑动窗口也按 token 指纹分桶：一个人连发不会吃掉别人的额度。
+- **token 健康检查** —— 墨墨没有 token 自省接口，这个工具靠探测 + 本地记账告诉你还剩几天。
 - **重试、超时与缓存** —— 瞬时故障走指数退避加抖动，每次请求有超时，`spelling → voc_id` 还有有界缓存，省掉重复查询。
 - **schema 校验入参** —— 工具只用 zod schema 声明一次，再投影成 JSON Schema，所以对外承诺的契约和运行时校验不会各走各的。
 - **可执行的报错** —— 失败以带类型的 `isError` 结果返回（`auth`、`rate_limit`、`not_found`、`invalid_input` 等），模型能据此自我纠正。
+- **单文件构建** —— 一个 1.4 MB 的 `.cjs`，零依赖，`node maimemo-mcp.cjs` 就跑起来，手机上不用 `npm install`。
+- **不必有服务器** —— 手机（Termux）、自己的电脑（systemd / launchd / 计划任务）、共享实例、传统 VPS，都有现成的部署方式。
 
 - **Complete API coverage** — 25 tools spanning all six documented resource groups,
   plus a diagnostic tool for the API token itself.
@@ -64,14 +67,46 @@ never sees or stores your account credentials.
   HTTP+SSE transport is still served at `GET /sse` for older clients.
 - **Per-request tokens** — clients may send `Authorization: Bearer <maimemo_token>`, so one
   deployment can safely serve multiple users. Each session gets an isolated API client.
-- **Built-in rate limiting** — a multi-window sliding log shapes traffic to Maimemo's quotas
-  (10s/20, 60s/40, 5h/2000 by default) instead of letting the model hit random 429s.
+- **Rate limiting per token** — Maimemo's quota is enforced per API token, so the
+  sliding window is keyed by token fingerprint too: one person's burst does not
+  spend another's allowance.
+- **Token health** — Maimemo exposes no token-introspection endpoint, so this tool
+  probes and keeps local bookkeeping to tell you how many days are left.
 - **Retries, timeouts, and caching** — exponential backoff with jitter on transient failures,
   per-request timeouts, and a bounded `spelling → voc_id` cache that removes redundant lookups.
 - **Schema-validated inputs** — tools are declared once as zod schemas and projected into
   JSON Schema, so advertised contracts and runtime validation cannot drift apart.
 - **Actionable errors** — failures come back as typed, human-readable `isError` results
   (`auth`, `rate_limit`, `not_found`, `invalid_input`, …) so the model can self-correct.
+- **Single-file build** — one 1.4 MB `.cjs` with no dependencies; `node maimemo-mcp.cjs`
+  is the whole install, which matters on a phone where `npm install` is a chore.
+- **No server required** — a phone (Termux), your own computer (systemd / launchd / Task
+  Scheduler), a shared instance, or a normal VPS: each has a documented route.
+
+---
+
+## 选一种跑法 / Pick a deployment
+
+先决定服务跑在哪，再决定 token 放哪。
+
+Decide where the server runs, then where the token lives.
+
+| 你的情况 Your situation | 跑在哪 Where it runs | 客户端连 Client connects to | 文档 Docs |
+|---|---|---|---|
+| 有台自己的电脑 A computer you own | 那台电脑 | `http://127.0.0.1:9103/mcp` | [docs/SELF-HOST.md](docs/SELF-HOST.md) |
+| 只想用手机 Phone only | 手机 + Termux | `http://127.0.0.1:9103/mcp` | [docs/PHONE.md](docs/PHONE.md) |
+| 多人共用 Shared by several people | 任意常开机器 Any always-on host | `https://<host>/mcp` | [docs/PHONE.md](docs/PHONE.md) |
+| 有台服务器 A server | VPS + Docker | `https://<host>/mcp` | [DEPLOY.md](DEPLOY.md) |
+
+**token 放哪**，跟着机器的可靠程度走：
+
+**Where the token goes** follows how reliable the machine is:
+
+| | 服务端持有 On the server | 客户端持有 On the client |
+|---|---|---|
+| 配置 Configure | 设 `MAIMEMO_API_TOKEN` | 设 `MAIMEMO_REQUIRE_CLIENT_TOKEN=true `MAIMEMO_API_TOKEN` |
+| token 过期时 On expiry | 改配置 + **重启服务** | 只改客户端，**不用重启** |
+| 适合 Best for | 一直开着的机器 An always-on host | 会睡 / 会被杀的机器 A laptop or phone |
 
 ---
 
@@ -110,6 +145,41 @@ In the Maimemo app: **我的 → 更多设置 → 实验功能 → 开放 API**
 
 ## 快速开始 / Quick start
 
+需要 Node.js 20 或更高。
+
+Node.js 20 or newer is required.
+
+### 单文件（最省事）/ Single file (least ceremony)
+
+```bash
+mkdir -p ~/.maimemo-mcp && cd ~/.maimemo-mcp
+curl -fL -o maimemo-mcp.cjs \
+  https://github.com/tutu-kitty/maimemo-mcp/releases/latest/download/maimemo-mcp.cjs
+
+cat > .env <<'EOF'
+MAIMEMO_REQUIRE_CLIENT_TOKEN=true
+MAIMEMO_MCP_TRANSPORT=http
+HOST=127.0.0.1
+PORT=9103
+MAIMEMO_TOKEN_STATE_DIR=/home/<you>/.maimemo-mcp/state
+EOF
+
+set -a; . ./.env; set +a
+node maimemo-mcp.cjs
+```
+
+```bash
+curl -s http://127.0.0.1:9103/healthz
+```
+
+零依赖，不用 `npm install`，手机上也跑得动。完整走法见
+[docs/SELF-HOST.md](docs/SELF-HOST.md) 和 [docs/PHONE.md](docs/PHONE.md)。
+
+No dependencies, no `npm install` — which is also what makes it work on a phone.
+Full walkthroughs in [docs/SELF-HOST.md](docs/SELF-HOST.md) and [docs/PHONE.md](docs/PHONE.md).
+
+### 从源码 / From source
+
 ```bash
 git clone https://github.com/tutu-kitty/maimemo-mcp.git
 cd maimemo-mcp
@@ -135,13 +205,22 @@ docker build -t maimemo-mcp .
 docker run -p 3000:3000 -e MAIMEMO_API_TOKEN=your_token maimemo-mcp
 ```
 
+或者用 compose（默认只绑 `127.0.0.1`，前面自己挡一层 TLS）：
+
+Or with compose (bound to `127.0.0.1` by default; put TLS in front of it):
+
+```bash
+cp .env.example .env
+docker compose up -d
+```
+
 ---
 
 ## 配置项 / Configuration
 
 | 变量 Variable | 默认值 Default | 用途 Purpose |
 | --- | --- | --- |
-| `MAIMEMO_API_TOKEN` | — | 墨墨开放 API token。stdio 模式必填；http 模式下客户端自带 token 时可不填。/ Maimemo Open API token. Required for stdio; optional for http when clients send their own. |
+| `MAIMEMO_API_TOKEN` | — | 墨墨开放 API token。stdio 模式必填；http 模式下客户端自带 token 时可不填。/ Maimemo Open API token. Required for stdio; optional in http when clients send their own. |
 | `MAIMEMO_REQUIRE_CLIENT_TOKEN` | 没设 token 时为 `true` / `true` if no token is set | 强制每个客户端都自己带 `Authorization: Bearer`。/ Force every client to send `Authorization: Bearer`. |
 | `MAIMEMO_MCP_TRANSPORT` | `http` | `http` 或 `stdio`。/ `http` or `stdio`. |
 | `PORT` / `HOST` | `3000` / `0.0.0.0` | HTTP 监听地址。/ HTTP listener. |
@@ -155,6 +234,12 @@ docker run -p 3000:3000 -e MAIMEMO_API_TOKEN=your_token maimemo-mcp
 配置不合法会在启动时直接失败，并给出明确报错。
 
 Invalid configuration fails fast at startup with an explicit message.
+
+> ⚠️ **`MAIMEMO_API_TOKEN` 和 `MAIMEMO_REQUIRE_CLIENT_TOKEN=true` 不要同时设。**
+> 前者是服务端兜底 token，设了就等于把所有人的调用都记在你这个 token 上。
+>
+> ⚠️ **Never set both `MAIMEMO_API_TOKEN` and `MAIMEMO_REQUIRE_CLIENT_TOKEN=true`.**
+> The former is a server-side fallback, so setting it bills every call to your token.
 
 ---
 
@@ -180,6 +265,9 @@ https://your-domain.example.com/mcp
 If you set `MAIMEMO_REQUIRE_CLIENT_TOKEN=true configure the connection's Bearer token to
 your Maimemo API token. Otherwise the server falls back to `MAIMEMO_API_TOKEN`.
 
+> **URL 末尾不要加斜杠** —— `/mcp/` 会 404。
+> **No trailing slash** — `/mcp/` returns 404.
+
 ### 本地客户端（Claude Desktop 等）/ Local clients (Claude Desktop, and similar)
 
 ```json
@@ -192,6 +280,24 @@ your Maimemo API token. Otherwise the server falls back to `MAIMEMO_API_TOKEN`.
         "MAIMEMO_MCP_TRANSPORT": "stdio",
         "MAIMEMO_API_TOKEN": "your_token_here"
       }
+    }
+  }
+}
+```
+
+### RikkaHub（橘瓣）
+
+橘瓣只支持 SSE 和 Streamable HTTP，**不支持 stdio**，所以填 URL：
+
+RikkaHub supports SSE and Streamable HTTP but **not stdio**, so give it a URL:
+
+```json
+{
+  "mcpServers": {
+    "maimemo (墨墨背单词)": {
+      "type": "streamable_http",
+      "url": "http://127.0.0.1:9103/mcp",
+      "headers": { "Authorization": "***" }
     }
   }
 }
@@ -217,7 +323,7 @@ SullyOS 自带 MCP 客户端，能直接接本服务器。设置 → **MCP 服�
 
 > SullyOS 本身是「源码可见、非开放源代码授权」的项目，这里只说明接入方式，不涉及它的代码。
 
-SullyOS ships its own MCP client and can talk to this server directly. In
+SullyOS ships with its own MCP client and can talk to this server directly. In
 **设置 → MCP 服务器**, add a server with:
 
 | Field | Value |
@@ -247,89 +353,33 @@ npm run inspect
 
 ---
 
-## 在手机上跑 / Running on your phone
+## 部署 / Deployment
 
-没有 VPS 也能用。这个 server 可以直接跑在你自己手机上，数据只从手机出去。
+四种跑法，各有文档：
 
-No VPS needed — the server runs on your own phone and your data leaves the phone
-only to reach the official Maimemo API.
+Four routes, each with its own guide:
 
-### A. Android：全本地，数据不离开手机
+| 路线 Route | 适合 For | 文档 Docs |
+|---|---|---|
+| 手机（Termux） | Android，数据完全不离开手机 | [docs/PHONE.md](docs/PHONE.md) |
+| 自己的电脑 | Mac / Linux / Windows | [docs/SELF-HOST.md](docs/SELF-HOST.md) |
+| 共享实例 | 多人共用，服务端零凭据 | [docs/PHONE.md](docs/PHONE.md) |
+| 服务器 | VPS + Docker + Nginx + TLS | [DEPLOY.md](DEPLOY.md) |
 
-```bash
-# Termux on Android — 一条命令
-curl -fsSL https://raw.githubusercontent.com/tutu-kitty/maimemo-mcp/main/deploy/install-termux.sh | bash
+现成的部署件：
 
-# 服务端不持有 token，token 只放客户端（手机上的首选：过期只改客户端）
-curl -fsSL https://raw.githubusercontent.com/tutu-kitty/maimemo-mcp/main/deploy/install-termux.sh | bash -s -- --client-token-only
-```
+Ready-made deployment pieces:
 
-服务只监听 `127.0.0.1`，客户端填 `http://127.0.0.1:9103/mcp`（无尾斜杠）。
-
-### B. 共享实例：iOS 走这条，客户端什么都不用装
-
-一台机器跑服务，**每个人带自己的墨墨 token**，服务端不持有任何人的凭据：
-
-```bash
-# 服务端：不设 MAIMEMO_API_TOKEN，强制客户端带 token
-MAIMEMO_REQUIRE_CLIENT_TOKEN=true
-MAIMEMO_MCP_TRANSPORT=http
-```
-
-客户端填 `https://<你的实例>/mcp` + 请求头 `Authorization: Bearer 你的token`。
-
-两条路线的完整步骤、局域网用法、以及踩坑清单，见 **[docs/PHONE.md](docs/PHONE.md)**。
-
-Both routes have full walkthroughs, plus LAN usage and the pitfall list, in
-**[docs/PHONE.md](docs/PHONE.md)**。
-
----
-
-## 在自己的电脑上跑 / Running on your own computer
-
-Mac、Linux、Windows 都可以。它就是一个 Node 进程，放哪都能跑，数据只从你这台机器出去。
-
-Mac, Linux, and Windows all work — it is a plain Node process, and your data
-leaves your machine only to reach the official Maimemo API.
-
-```bash
-# 装 Node 20+，然后下单个文件（1.4 MB，零依赖，不需要 npm install）
-mkdir -p ~/.maimemo-mcp && cd ~/.maimemo-mcp
-curl -fL -o maimemo-mcp.cjs \
-  https://github.com/tutu-kitty/maimemo-mcp/releases/latest/download/maimemo-mcp.cjs
-```
-
-写一个 `~/.maimemo-mcp/.env`（详见 **[docs/SELF-HOST.md](docs/SELF-HOST.md)**）：
-
-```ini
-# 服务端不持有 token，每个客户端带自己的 —— 机器睡着/换 token 都不用管服务端
-MAIMEMO_REQUIRE_CLIENT_TOKEN=true
-MAIMEMO_MCP_TRANSPORT=http
-HOST=127.0.0.1
-PORT=9103
-MAIMEMO_TOKEN_STATE_DIR=/home/<you>/.maimemo-mcp/state
-```
-
-```bash
-cd ~/.maimemo-mcp && set -a; . ./.env; set +a
-node maimemo-mcp.cjs
-# [maimemo] v2.1.0 listening on 127.0.0.1:9103
-```
-
-客户端填 `http://127.0.0.1:9103/mcp`（无尾斜杠）+ 请求头 `Authorization: Bearer <你的 token>`。
-
-| 系统 | 开机自启 |
+| 文件 File | 用途 Purpose |
 |---|---|
-| Linux | `deploy/maimemo-mcp.service`（systemd） |
-| macOS | `deploy/maimemo-mcp.plist`（launchd） |
-| Windows | 任务计划程序 |
+| `deploy/install-termux.sh` | Android 一键安装。`--client-token-only` 让服务端不持有 token。/ One-command install for Android. `--client-token-only` keeps the token off the server. |
+| `deploy/maimemo-mcp.service` | systemd 单元（Linux）。/ systemd unit (Linux). |
+| `deploy/maimemo-mcp.plist` | launchd 作业（macOS）。/ launchd job (macOS). |
+| `deploy/nginx.conf` | nginx 反代模板，TLS 终止 + 流式转发。/ nginx reverse-proxy template: TLS termination and streaming pass-through. |
+| `deploy/deploy.sh` | 服务器一键部署（Docker）。/ One-shot server deploy (Docker). |
 
-让同一局域网 / 私有网络里的别的设备也能连、或者公开到公网 —— 以及各自的
-安全注意事项 —— 见 **[docs/SELF-HOST.md](docs/SELF-HOST.md)**。
-
-To reach the server from other devices on your LAN or private network, or to
-expose it publicly — and the security caveats for each — see
-**[docs/SELF-HOST.md](docs/SELF-HOST.md)**.
+开机自启、局域网、私有网络、公网暴露的完整走法见
+[docs/SELF-HOST.md](docs/SELF-HOST.md)。
 
 ---
 
@@ -341,7 +391,7 @@ expose it publicly — and the security caveats for each — see
 | `GET` | `/mcp` | 已建立会话的服务端 → 客户端通知流。/ Server-to-client notification stream for an existing session. |
 | `DELETE` | `/mcp` | 终止会话。/ Terminate a session. |
 | `GET` | `/sse` | 已废弃的 HTTP+SSE 传输。/ Deprecated HTTP+SSE transport. |
-| `POST` | `/messages` | 废弃 SSE 传输的消息入口。/ Message sink for the deprecated SSE transport. |
+| `POST` | `/messages` | 废弃 SSE 传输的消息入口。/ Message sink for the deprecated HTTP+SSE transport. |
 | `GET` | `/healthz` | 存活检查、版本、会话数、限流用量。/ Liveness, version, session count, rate-limit usage. |
 
 ---
@@ -377,17 +427,26 @@ src/
   config.ts        Environment parsing and fail-fast validation
   errors.ts        Typed error hierarchy and HTTP status mapping
   rate-limiter.ts  Multi-window sliding-log throttle
-  client.ts        Maimemo API client: retries, timeouts, voc_id cache
+  client.ts        Maimemo API client: retries, timeouts, voc_id cache, token fingerprint
   token-status.ts  Token health: probe, fingerprint, expiry window
   tools.ts         zod schemas → JSON Schema + tool annotations
   handlers.ts      Validated dispatch to Maimemo endpoints
   server.ts        MCP server factory
-  http.ts          Streamable HTTP + legacy SSE + health, graceful shutdown
+  http.ts          Streamable HTTP + legacy SSE + health, per-token limiters
   index.ts         Entry point and transport selection
 
 test/
-  config.test.mjs        Configuration parsing and version consistency
-  token-status.test.mjs  Token health, expiry window, atomic state writes
+  config.test.mjs          Configuration parsing and version consistency
+  token-status.test.mjs    Token health, expiry window, atomic state writes
+  rate-limit.test.mjs      Per-token rate-limit buckets
+  install-termux.test.mjs  Installer options and generated configuration
+
+deploy/
+  install-termux.sh    One-command install for Android (Termux)
+  maimemo-mcp.service  systemd unit
+  maimemo-mcp.plist    launchd job
+  nginx.conf           Reverse-proxy template
+  deploy.sh            Server deploy (Docker)
 ```
 
 ---
@@ -447,19 +506,34 @@ starts a fresh baseline and a crash mid-write cannot corrupt the record.
 
 ## 相对上游的改动 / Differences from upstream
 
-- **`get_token_status`** —— 上面那个 token 健康检查工具。
-- **测试套件** —— `npm test` 跑配置解析和 token 健康检查的单元测试。
+- **`get_token_status`** —— 上面那个 token 健康检查工具（上游 24 个工具，本 fork 25 个）。
+- **按 token 分桶限流** —— 上游是整个进程共用一个滑动窗口；墨墨的配额是按 token 记的，
+  所以本 fork 按 token 指纹分桶，一个人连发不会吃掉别人的额度。
+- **`tokenFingerprint()`** —— 稳定的 token 指纹（SHA-256 前 16 位），用来给限流和记账分桶，
+  本身不保存 token。
+- **测试套件** —— `npm test` 跑配置解析、token 健康、限流分桶、安装脚本的单元测试（上游零测试）。
 - **`loadConfig(env)`** 现在读的是传进来的那个 env 对象，而不是永远去摸 `process.env`，这样才测得了。
-- **版本号一致性** —— CI 会检查对外声明的版本跟 `package.json` 是否一致。
-- **部署脚本** 指向本 fork 的 raw URL。
+- **单文件构建** —— `npm run bundle` 打出一个零依赖的 CJS 文件，手机上 `node` 直接跑；
+  Release 工作流会把它和源码包一起发出来。
+- **更多部署方式** —— Android 一键安装脚本（含 `--client-token-only`）、macOS launchd 模板、
+  `docs/PHONE.md`、`docs/SELF-HOST.md`。
+- **CI 门禁** —— 单元测试、版本号一致性检查、`tools/list` 冒烟测试。
 
-- **`get_token_status`** — the token-health tool described above.
-- **Test suite** — `npm test` runs unit tests over config parsing and token health.
-- **`loadConfig(env)`** now reads the environment object it is given instead of
-  always reaching for `process.env`, which makes it testable.
-- **Version consistency** — the advertised server version is checked against
-  `package.json` in CI.
-- **Deployment scripts** point at this fork's raw URLs.
+- **`get_token_status`** — the token-health tool above (24 tools upstream, 25 here).
+- **Rate limiting per token** — upstream shares one sliding window across the whole
+  process. Maimemo's quota is per API token, so this fork buckets by token fingerprint
+  and one person's burst does not spend another's allowance.
+- **`tokenFingerprint()`** — a stable fingerprint (first 16 hex digits of SHA-256) used
+  to bucket rate limits and bookkeeping, without retaining the token itself.
+- **Test suite** — `npm test` covers config parsing, token health, limit bucketing, and
+  the installer (upstream had no tests).
+- **`loadConfig(env)`** now reads the environment object it is given instead of always
+  reaching for `process.env`, which makes it testable.
+- **Single-file build** — `npm run bundle` produces one dependency-free CJS file that a
+  phone can run with `node`; the release workflow publishes it alongside the source.
+- **More ways to deploy** — a one-command Android installer (with `--client-token-only`),
+  a macOS launchd template, `docs/PHONE.md`, and `docs/SELF-HOST.md`.
+- **CI gates** — unit tests, a version-consistency check, and a `tools/list` smoke test.
 
 ---
 
