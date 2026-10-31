@@ -319,7 +319,7 @@ tailscale serve --bg --https=443 http://127.0.0.1:9103
 |---|---|---|
 | 连上但一调用就 401 | token 填错了（`initialize` 不校验 token 有效性） | 用 `get_token_status` 验 |
 | 404 | URL 多了尾斜杠 | 精确写 `/mcp` |
-| 服务起不来，报 `Invalid MAIMEMO_REQUIRE_CLIENT_TOKEN` | 值写成了 `***` 而不是 `true` | 改成 `true` |
+| 服务起不来，报 `Invalid MAIMEMO_REQUIRE_CLIENT_TOKEN` | 值不是 `true` / `1` / `yes` / `on` | 改成 `true` |
 | `get_token_status` 报 `unknown` | 网络问题，或者探针没走到墨墨 | 看日志；探针端点固定是云词本列表，不是查词典 |
 | 记账写不进去 / 每次启动都重新计时 | `MAIMEMO_TOKEN_STATE_DIR` 指向了不可写目录 | 指到项目目录之外的路径 |
 | 端口被占 | 9103 已经有东西了 | `.env` 里改 `PORT` |

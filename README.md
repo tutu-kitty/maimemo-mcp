@@ -104,7 +104,7 @@ Decide where the server runs, then where the token lives.
 
 | | 服务端持有 On the server | 客户端持有 On the client |
 |---|---|---|
-| 配置 Configure | 设 `MAIMEMO_API_TOKEN` | 设 `MAIMEMO_REQUIRE_CLIENT_TOKEN=true `MAIMEMO_API_TOKEN` |
+| 配置 Configure | 设 `MAIMEMO_API_TOKEN` | 设 `MAIMEMO_REQUIRE_CLIENT_TOKEN=true`，**不设** `MAIMEMO_API_TOKEN` |
 | token 过期时 On expiry | 改配置 + **重启服务** | 只改客户端，**不用重启** |
 | 适合 Best for | 一直开着的机器 An always-on host | 会睡 / 会被杀的机器 A laptop or phone |
 
@@ -262,7 +262,7 @@ https://your-domain.example.com/mcp
 
 如果设了 `MAIMEMO_REQUIRE_CLIENT_TOKEN=true`，就把连接用的 Bearer token 设成你的墨墨 API token；否则服务端回落到用 `MAIMEMO_API_TOKEN`。
 
-If you set `MAIMEMO_REQUIRE_CLIENT_TOKEN=true configure the connection's Bearer token to
+If you set `MAIMEMO_REQUIRE_CLIENT_TOKEN=true`, configure the connection's Bearer token to
 your Maimemo API token. Otherwise the server falls back to `MAIMEMO_API_TOKEN`.
 
 > **URL 末尾不要加斜杠** —— `/mcp/` 会 404。
@@ -297,7 +297,7 @@ RikkaHub supports SSE and Streamable HTTP but **not stdio**, so give it a URL:
     "maimemo (墨墨背单词)": {
       "type": "streamable_http",
       "url": "http://127.0.0.1:9103/mcp",
-      "headers": { "Authorization": "***" }
+      "headers": { "Authorization": "<your Maimemo token>" }
     }
   }
 }
