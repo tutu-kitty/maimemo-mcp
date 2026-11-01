@@ -29,7 +29,7 @@ In other words: you talk to the AI, the AI talks to 墨墨背单词 on your beha
 > 手机一键安装、macOS 开机自启、两份中文部署文档和自动发布流程。
 > 逐项对照见[相对上游的改动](#differences-from-upstream)。
 >
-> **不信可以自己看 diff** —— 比上游多 **__C__ 个 commit、__F__ 个文件、+__L__ 行**（不含 lockfile）：
+> **不信可以自己看 diff** —— 比上游多 **26 个 commit、28 个文件、+2477 行**（不含 lockfile）：
 > [一键对比上游](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
 >
 > **This is a fork of the upstream project
@@ -44,7 +44,7 @@ In other words: you talk to the AI, the AI talks to 墨墨背单词 on your beha
 > release. See [Differences from upstream](#differences-from-upstream) for a
 > line-by-line comparison.
 >
-> **Don't take my word for it — read the diff.** __C__ commits, __F__ files, +__L__ lines
+> **Don't take my word for it — read the diff.** 26 commits, 28 files, +2477 lines
 > ahead of upstream (excluding the lockfile):
 > [one-click comparison](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
 
@@ -587,7 +587,7 @@ starts a fresh baseline and a crash mid-write cannot corrupt the record.
 没测过、没记过 token、限流是整个进程共用一个窗口，手机上装不起来，也没法直接发给别人用。
 本 fork 把「一个人真的在用」当成第一需求，把这些补齐了。
 
-**差多少**：比上游多 **__C__ 个 commit、__F__ 个文件、+__L__ 行**（不含 `package-lock.json`）——
+**差多少**：比上游多 **26 个 commit、28 个文件、+2477 行**（不含 `package-lock.json`）——
 新写的代码 736 行（`src/` 271 + `test/` 465）、中文文档 663 行、部署件 305 行。
 [一键对比上游 diff](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
 
@@ -597,7 +597,7 @@ process, not installable on a phone, and not something you can hand to someone e
 This fork treats "one person actually using this every day" as the requirement, and fills
 those gaps in.
 
-**How much more**: __C__ commits, __F__ files, +__L__ lines over upstream (excluding
+**How much more**: 26 commits, 28 files, +2477 lines over upstream (excluding
 `package-lock.json`) — 736 lines of new code (`src/` 271 + `test/` 465), 663 lines of
 Chinese documentation, 305 lines of deployment pieces.
 [One-click diff against upstream](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)

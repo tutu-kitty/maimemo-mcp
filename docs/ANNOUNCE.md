@@ -26,7 +26,7 @@
 `maimemo-mcp` 就是干这个的 —— 把墨墨背单词的开放 API 接成 MCP 工具。接上之后，你在对话里说一句「帮我给这批词编个谐音」，它就真的写进你的墨墨账号里；「把今天的生词加进考研核心」，它就真的整理好云词本。
 
 **它不是换皮。** 上游是 <https://github.com/Mrquj/mcp-server-maimemo>（MIT），这个是 fork，改动都能看：
-[__C__ 个 commit、__F__ 个文件、+__L__ 行 diff](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
+[26 个 commit、28 个文件、+2477 行 diff](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
 
 比上游多出来的：
 
@@ -51,7 +51,7 @@ your study plan — on your own account, with your own token.
 
 **It is not a reskin.** This is a fork of
 <https://github.com/Mrquj/mcp-server-maimemo> (MIT) with
-[__C__ commits and __L__ lines of changes](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
+[26 commits and 2477 lines of changes](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
 on top:
 
 - **25 tools** instead of 24 — the extra one, `get_token_status`, tells you how many days
@@ -79,7 +79,7 @@ Repo: <https://github.com/tutu-kitty/maimemo-mcp>
 | 本 fork 限流 | 按 token 指纹分桶 | 本 fork `src/http.ts` 的 `Map` |
 | 上游测试 | 0（无 `test/` 目录、无 `npm test` 脚本） | 上游 `git tree` |
 | 本 fork 测试 | 36 | `npm test` |
-| 领先上游 | __C__ commit / __F__ 文件 / +__L__ 行（不含 lockfile） | `git diff upstream/main` |
+| 领先上游 | 26 commit / 28 文件 / +2477 行（不含 lockfile） | `git diff upstream/main` |
 | 单文件体积 | 1.4 MB（1,400,309 B） | release 资产 |
 | 本 fork 版本 | 2.1.0 | `package.json` |
 | 上游版本 | 2.0.0 | 上游 `package.json` |
