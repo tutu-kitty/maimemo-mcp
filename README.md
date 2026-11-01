@@ -29,6 +29,9 @@ In other words: you talk to the AI, the AI talks to 墨墨背单词 on your beha
 > 手机一键安装、macOS 开机自启、两份中文部署文档和自动发布流程。
 > 逐项对照见[相对上游的改动](#differences-from-upstream)。
 >
+> **不信可以自己看 diff** —— 比上游多 **__C__ 个 commit、__F__ 个文件、+__L__ 行**（不含 lockfile）：
+> [一键对比上游](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
+>
 > **This is a fork of the upstream project
 > [Mrquj/mcp-server-maimemo](https://github.com/Mrquj/mcp-server-maimemo) (MIT).**
 > It is not the upstream release, but a derivative work kept under the same MIT
@@ -40,6 +43,10 @@ In other words: you talk to the AI, the AI talks to 墨墨背单词 on your beha
 > installer, a macOS launchd job, two Chinese deployment guides, and an automated
 > release. See [Differences from upstream](#differences-from-upstream) for a
 > line-by-line comparison.
+>
+> **Don't take my word for it — read the diff.** __C__ commits, __F__ files, +__L__ lines
+> ahead of upstream (excluding the lockfile):
+> [one-click comparison](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
 
 ---
 
@@ -580,6 +587,21 @@ starts a fresh baseline and a crash mid-write cannot corrupt the record.
 没测过、没记过 token、限流是整个进程共用一个窗口，手机上装不起来，也没法直接发给别人用。
 本 fork 把「一个人真的在用」当成第一需求，把这些补齐了。
 
+**差多少**：比上游多 **__C__ 个 commit、__F__ 个文件、+__L__ 行**（不含 `package-lock.json`）——
+新写的代码 736 行（`src/` 271 + `test/` 465）、中文文档 663 行、部署件 305 行。
+[一键对比上游 diff](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
+
+Upstream is a usable starting point: it wrapped the 墨墨 Open API in MCP tools. But it
+stops at "it runs" — untested, no token bookkeeping, one rate-limit window for the whole
+process, not installable on a phone, and not something you can hand to someone else.
+This fork treats "one person actually using this every day" as the requirement, and fills
+those gaps in.
+
+**How much more**: __C__ commits, __F__ files, +__L__ lines over upstream (excluding
+`package-lock.json`) — 736 lines of new code (`src/` 271 + `test/` 465), 663 lines of
+Chinese documentation, 305 lines of deployment pieces.
+[One-click diff against upstream](https://github.com/Mrquj/mcp-server-maimemo/compare/main...tutu-kitty:main)
+
 | | 上游 upstream | 本项目 this fork |
 | --- | --- | --- |
 | 工具 Tools | 24 | **25**（多一个 `get_token_status`） |
@@ -639,6 +661,7 @@ starts a fresh baseline and a crash mid-write cannot corrupt the record.
 - 🐙 **GitHub** — [@tutu-kitty](https://github.com/tutu-kitty)
 - 📕 **小红书** — [收获 13.4K 赞与收藏](https://xhslink.com/m/4Q9J9kPEv0x)
 - 🗺️ **另一个项目** — [desire-map](https://desire-map.pages.dev)
+- 📣 **想推荐它？** 现成的宣传文案在 [docs/ANNOUNCE.md](docs/ANNOUNCE.md)（一句话版 / 三行版 / 完整版 + 可引用的事实表）
 
 This is a personal project by **tutu-kitty**. The author is an active member of the
 human-AI romance community — the "talking to an AI companion" scene above is not
@@ -648,6 +671,9 @@ later it seemed worth sharing, so it is open source.
 - 🐙 **GitHub** — [@tutu-kitty](https://github.com/tutu-kitty)
 - 📕 **小红书 (Xiaohongshu)** — [13.4K likes and bookmarks](https://xhslink.com/m/4Q9J9kPEv0x)
 - 🗺️ **Another project** — [desire-map](https://desire-map.pages.dev)
+- 📣 **Want to recommend it?** Ready-made announcement copy lives in
+  [docs/ANNOUNCE.md](docs/ANNOUNCE.md) (one-liner / three-liner / full version, plus a
+  table of citable facts)
 
 ---
 
