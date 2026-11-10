@@ -138,12 +138,15 @@ never sees or stores your account credentials.
 - **Built for long-term use** — this exists for the "you will use it every day" case: tokens
   expire, laptops sleep, several people share one server. So rate limits are bucketed per
   token, the token can live on the client, and the server can hold no credentials at all.
-- **Complete API coverage** — 25 tools spanning all six documented resource groups,
-  plus a diagnostic tool for the API token itself.
+- **Complete coverage of the 墨墨背单词 resource group** — all 24 documented operations,
+  plus a diagnostic tool for the API token itself. The 记忆卡 (Markji) group is not
+  implemented yet.
 - **Streamable HTTP transport** — the current MCP spec, at `POST /mcp`. The deprecated
   HTTP+SSE transport is still served at `GET /sse` for older clients.
 - **Per-request tokens** — clients may send `Authorization: Bearer <maimemo_token>`, so one
-  deployment can safely serve multiple users. Each session gets an isolated API client.
+  deployment can safely serve multiple users. Each session gets an isolated API client,
+  and it follows the token in every request — rotating a token takes effect immediately,
+  without rebuilding the session.
 - **Rate limiting per token** — Maimemo's quota is enforced per API token, so the
   sliding window is keyed by token fingerprint too: one person's burst does not
   spend another's allowance.
