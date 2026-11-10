@@ -25,6 +25,12 @@ const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const HTTP_SCHEME = "http" + "://";
 
 /**
+ * Shape of a Maimemo account token (64 hex characters in practice).
+ * Used to recognise a token that arrives without a "Bearer " prefix.
+ */
+const MAIMEMO_TOKEN_SHAPE = /^[A-Za-z0-9_-]{32,128}$/;
+
+/**
  * Sessions are only released when the client sends DELETE or the transport
  * closes. Mobile clients that get killed by the OS never do either, so the
  * session map used to grow without bound (73 sessions after nine days).
@@ -330,6 +336,15 @@ function aggregateUsage(
     const value = header.slice(7).trim();
     if (value) return value;
   }
+  // A bare token is accepted too, without the "Bearer " prefix.
+  //
+  // Some mobile clients cannot reliably send a header value that contains a
+  // space: a stray line break right after "Bearer" makes the HTTP layer
+  // reject the request before it ever leaves the phone, and the user gets a
+  // stack trace instead of a status. Dropping the prefix takes every chance
+  // of a mis-typed one off the table.
+  const bare = header?.trim();
+  if (bare && MAIMEMO_TOKEN_SHAPE.test(bare)) return bare;
   const queryToken = url.searchParams.get("token")?.trim();
   if (queryToken) return queryToken;
   return config.requireClientToken ? undefined : config.token;

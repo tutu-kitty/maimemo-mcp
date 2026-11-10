@@ -54,12 +54,12 @@ function startServer(apiPort) {
   });
 }
 
-async function post(port, body, { token, sessionId }) {
+async function post(port, body, { token, sessionId, bare = false }) {
   const headers = {
     "Content-Type": "application/json",
     Accept: "application/json, text/event-stream",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (token) headers.Authorization = bare ? token : `Bearer ${token}`;
   if (sessionId) headers["mcp-session-id"] = sessionId;
   const res = await fetch(`http://127.0.0.1:${port}/mcp`, {
     method: "POST",
@@ -159,5 +159,24 @@ describe("session token rotation", () => {
     const status = await post(port, tokenStatusBody, { token, sessionId: opened.sessionId });
     const text = status.payload.result.content[0].text;
     assert.equal(JSON.parse(text).status, "expired_or_invalid");
+  });
+
+  it("accepts a bare token, without the Bearer prefix", async () => {
+    // Some mobile clients cannot reliably send a header value containing a
+    // space — a stray line break after "Bearer" makes the request fail in
+    // the HTTP layer before it leaves the phone. A bare token must work.
+    const apiPort = await startStubApi();
+    const port = await startServer(apiPort);
+    const token = "token-a-".padEnd(40, "a");
+
+    const opened = await post(port, initializeBody, { token, bare: true });
+    assert.ok(opened.sessionId, "expected an mcp-session-id for a bare token");
+
+    const status = await post(port, tokenStatusBody, {
+      token,
+      sessionId: opened.sessionId,
+      bare: true,
+    });
+    assert.equal(fingerprintOf(status.payload), tokenFingerprint(token));
   });
 });
