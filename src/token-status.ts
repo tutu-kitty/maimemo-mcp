@@ -196,10 +196,34 @@ export async function getTokenStatus(
     expires_soon: daysRemainingMax === null ? null : daysRemainingMax <= EXPIRES_SOON_DAYS,
     probed: probe,
     error,
-    remedy:
-      "If the status is expired_or_invalid, request a fresh token in the Maimemo app " +
-      "(我的 → 更多设置 → 实验功能 → 开放 API) or at " +
-      "https://open.maimemo.com/open/api/v1/tokens/openapi, then update MAIMEMO_API_TOKEN " +
-      "in the server environment and restart the server.",
+    remedy: remedyFor(client),
   };
+}
+
+/**
+ * The next step, spelled out for the way *this* deployment holds the token.
+ *
+ * The old wording always said "update MAIMEMO_API_TOKEN in the server
+ * environment and restart the server" — which is wrong for the shared,
+ * zero-credential deployment, where the server holds no token at all and the
+ * client sends one per request. Telling someone to edit a server file they
+ * never had would have sent them down the wrong path.
+ */
+function remedyFor(client: MaimemoClient): string {
+  const issue =
+    "Request a fresh token in the Maimemo app (我的 → 更多设置 → 实验功能 → 开放 API) " +
+    "or at https://open.maimemo.com/open/api/v1/tokens/openapi, ";
+  if (client.tokenSource === "per-request") {
+    return (
+      issue +
+      "then update the `Authorization: Bearer <token>` header in your MCP client. " +
+      "The server holds no token, so nothing needs to be restarted there. " +
+      "Maimemo tokens issued from the web console expire after 7 days."
+    );
+  }
+  return (
+    issue +
+    "then update MAIMEMO_API_TOKEN in the server environment and restart the server. " +
+    "Maimemo tokens issued from the web console expire after 7 days."
+  );
 }

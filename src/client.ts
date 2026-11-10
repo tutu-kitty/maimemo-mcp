@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { MaimemoError, errorFromStatus } from "./errors.js";
+import { MaimemoError, errorFromStatus, parseMaimemoErrors } from "./errors.js";
 import {
   DEFAULT_RATE_LIMITS,
   SlidingWindowRateLimiter,
@@ -22,6 +22,17 @@ export type MaimemoClientOptions = {
   rateLimits?: RateLimitWindow[];
   /** The window this client is subject to. One per token, not one per process. */
   rateLimiter?: SlidingWindowRateLimiter;
+  /**
+   * Where the token came from.
+   *
+   * "per-request" means the client sent it in the Authorization header (the
+   * shared-deployment mode, where the server holds no credential at all).
+   * "server" means the server-side MAIMEMO_API_TOKEN was used.
+   *
+   * The token-status tool uses this to say the *right* remedy: rotating a token
+   * in the server environment is pointless when the server never held one.
+   */
+  tokenSource?: "per-request" | "server";
 };
 
 type Envelope<T> = {
@@ -32,7 +43,14 @@ type Envelope<T> = {
 };
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+/**
+ * Statuses worth retrying.
+ *
+ * 429 is deliberately absent: Maimemo's quota is per token and per window,
+ * so an immediate retry lands in the same exhausted window and only burns
+ * more quota and more of the caller's timeout budget.
+ */
+const RETRYABLE_STATUS = new Set([408, 425, 500, 502, 503, 504]);
 
 /**
  * Stable, non-reversible fingerprint of a token.
@@ -45,11 +63,13 @@ export function tokenFingerprint(token: string): string {
 }
 
 export class MaimemoClient {
-  private readonly token: string;
+  private token: string;
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly maxRetries: number;
-  private readonly limiter: SlidingWindowRateLimiter;
+  private limiter: SlidingWindowRateLimiter;
+  /** Where this client's token came from — see MaimemoClientOptions.tokenSource. */
+  readonly tokenSource: "per-request" | "server";
   /** spelling -> voc_id. Vocabulary IDs are stable, so caching is safe. */
   private readonly vocIdCache = new Map<string, string>();
 
@@ -59,9 +79,28 @@ export class MaimemoClient {
     this.baseUrl = options.baseUrl ?? "https://open.maimemo.com/open/";
     this.timeoutMs = options.timeoutMs ?? 20_000;
     this.maxRetries = options.maxRetries ?? 3;
+    this.tokenSource = options.tokenSource ?? "server";
     this.limiter =
       options.rateLimiter ??
       new SlidingWindowRateLimiter(options.rateLimits ?? DEFAULT_RATE_LIMITS);
+  }
+
+  /**
+   * Swap the token this client uses.
+   *
+   * An MCP session outlives the token it was opened with: Maimemo tokens
+   * expire after roughly seven days, and the client (a phone app) then sends a
+   * fresh token on the *same* session. Pinning the token to the session meant
+   * the server kept calling Maimemo with the dead token — every call 401'd and
+   * nothing the user did could fix it short of rebuilding the session.
+   *
+   * The rate limiter is per token (Maimemo quotas are per token), so the
+   * caller has to hand over the new token's limiter as well.
+   */
+  setToken(token: string, options: { rateLimiter?: SlidingWindowRateLimiter } = {}): void {
+    if (!token) throw new MaimemoError("A Maimemo API token is required.", { code: "auth" });
+    this.token = token;
+    if (options.rateLimiter) this.limiter = options.rateLimiter;
   }
 
   /**
@@ -144,7 +183,10 @@ export class MaimemoClient {
     const text = await res.text();
 
     if (!res.ok) {
-      throw errorFromStatus(res.status, text || res.statusText, tryParse(text));
+      throw errorFromStatus(res.status, text || res.statusText, tryParse(text), {
+        tokenSource: this.tokenSource,
+        retryAfter: res.headers.get("retry-after") ?? undefined,
+      });
     }
     if (!text.trim()) return {} as T;
 
@@ -156,10 +198,18 @@ export class MaimemoClient {
     }
 
     if (Array.isArray(json.errors) && json.errors.length > 0) {
-      throw new MaimemoError("Maimemo returned an application-level error.", {
-        code: "api_error",
-        details: json.errors,
-      });
+      // Maimemo sometimes answers 200 with an application-level error body.
+      // `common_unauthorized` is a token problem, not a generic API problem,
+      // and the distinction is what tells the caller what to fix.
+      const parsed = parseMaimemoErrors(text);
+      const first = parsed[0];
+      if (first?.code === "common_unauthorized") {
+        throw errorFromStatus(401, text, parsed, { tokenSource: this.tokenSource });
+      }
+      throw new MaimemoError(
+        `Maimemo returned an application-level error${first ? `: ${first.code} — ${first.msg}` : "."}`,
+        { code: "api_error", details: parsed.length ? parsed : json.errors },
+      );
     }
     if (json.success === false) {
       throw new MaimemoError("Maimemo reported the request as unsuccessful.", {

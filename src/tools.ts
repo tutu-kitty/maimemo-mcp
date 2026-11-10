@@ -200,15 +200,15 @@ const meta: Record<ToolName, Meta> = {
     readOnly: true,
   },
   list_notes: { title: "List notes", description: "List the mnemonics (\u52a9\u8bb0) saved for a word.", readOnly: true },
-  create_note: { title: "Create note", description: "Save a new mnemonic (\u52a9\u8bb0) for a word." },
+  create_note: { title: "Create note", description: "Save a new mnemonic (\u52a9\u8bb0) for a word. Maimemo allows at most 600 new items per day across notes, interpretations and phrases combined, so check the budget before batch-writing." },
   update_note: { title: "Update note", description: "Replace the type and content of an existing mnemonic.", idempotent: true },
   delete_note: { title: "Delete note", description: "Permanently delete a mnemonic by ID.", destructive: true, idempotent: true },
   list_interpretations: { title: "List interpretations", description: "List the interpretations (\u91ca\u4e49) saved for a word.", readOnly: true },
-  create_interpretation: { title: "Create interpretation", description: "Add a custom interpretation (\u91ca\u4e49) to a word." },
+  create_interpretation: { title: "Create interpretation", description: "Add a custom interpretation (\u91ca\u4e49) to a word. Maimemo allows at most 600 new items per day across notes, interpretations and phrases combined, so check the budget before batch-writing." },
   update_interpretation: { title: "Update interpretation", description: "Replace an existing interpretation by ID.", idempotent: true },
   delete_interpretation: { title: "Delete interpretation", description: "Permanently delete an interpretation by ID.", destructive: true, idempotent: true },
   list_phrases: { title: "List phrases", description: "List the example sentences (\u4f8b\u53e5) saved for a word.", readOnly: true },
-  create_phrase: { title: "Create phrase", description: "Add an example sentence (\u4f8b\u53e5) to a word." },
+  create_phrase: { title: "Create phrase", description: "Add an example sentence (\u4f8b\u53e5) to a word. Maimemo allows at most 600 new items per day across notes, interpretations and phrases combined, so check the budget before batch-writing." },
   update_phrase: { title: "Update phrase", description: "Replace an existing example sentence by ID.", idempotent: true },
   delete_phrase: { title: "Delete phrase", description: "Permanently delete an example sentence by ID.", destructive: true, idempotent: true },
   list_notepads: { title: "List notepads", description: "List your cloud notepads (\u4e91\u8bcd\u672c) with pagination.", readOnly: true },
@@ -235,13 +235,35 @@ function toJsonSchema(schema: z.ZodTypeAny): Tool["inputSchema"] {
   return { type: "object", ...generated } as Tool["inputSchema"];
 }
 
+/**
+ * "At least one of these" cannot be expressed by `required`, and zod's
+ * `.refine()` does not survive `zodToJsonSchema` — the constraint is enforced
+ * at runtime but never reaches the model, which then learns it by calling
+ * with nothing and reading the error. These overrides put the constraint back
+ * into the schema the client actually sees.
+ */
+const SCHEMA_OVERRIDES: Record<string, Record<string, unknown>> = {
+  list_notes: { anyOf: [{ required: ["word"] }, { required: ["voc_id"] }] },
+  create_note: { anyOf: [{ required: ["word"] }, { required: ["voc_id"] }] },
+  list_interpretations: { anyOf: [{ required: ["word"] }, { required: ["voc_id"] }] },
+  create_interpretation: { anyOf: [{ required: ["word"] }, { required: ["voc_id"] }] },
+  list_phrases: { anyOf: [{ required: ["word"] }, { required: ["voc_id"] }] },
+  create_phrase: { anyOf: [{ required: ["word"] }, { required: ["voc_id"] }] },
+  query_vocabularies: { anyOf: [{ required: ["spellings"] }, { required: ["ids"] }] },
+  add_words: { anyOf: [{ required: ["voc_ids"] }, { required: ["spellings"] }] },
+  advance_study: { anyOf: [{ required: ["voc_ids"] }, { required: ["spellings"] }] },
+};
+
 export const TOOLS: Tool[] = (Object.keys(schemas) as ToolName[]).map((name) => {
   const info = meta[name];
   return {
     name,
     title: info.title,
     description: info.description,
-    inputSchema: toJsonSchema(schemas[name]),
+    inputSchema: {
+      ...toJsonSchema(schemas[name]),
+      ...(SCHEMA_OVERRIDES[name] ?? {}),
+    } as Tool["inputSchema"],
     annotations: {
       title: info.title,
       readOnlyHint: info.readOnly ?? false,

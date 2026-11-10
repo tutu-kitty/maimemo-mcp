@@ -37,44 +37,90 @@ export class MaimemoError extends Error {
   }
 }
 
-/** Maps an HTTP status from the Maimemo API onto a typed error. */
+/** One entry of Maimemo's structured error body. */
+export type MaimemoApiError = { code: string; msg: string; info?: string };
+
+/**
+ * Pulls Maimemo's structured error codes out of a response body.
+ *
+ * Maimemo answers with `{"errors":[{"code":"common_unauthorized","msg":"..."}],"success":false}`.
+ * That code is the part that tells an LLM what to do next, so it belongs in
+ * the message itself instead of being buried under a raw JSON blob.
+ */
+export function parseMaimemoErrors(body: string): MaimemoApiError[] {
+  try {
+    const parsed = JSON.parse(body) as { errors?: unknown };
+    if (!Array.isArray(parsed.errors)) return [];
+    return parsed.errors
+      .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
+      .map((entry) => ({
+        code: String(entry.code ?? "unknown"),
+        msg: String(entry.msg ?? ""),
+        info: entry.info === undefined || entry.info === "" ? undefined : String(entry.info),
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Maps an HTTP status from the Maimemo API onto a typed error.
+ *
+ * `options.tokenSource` decides *where* the fix has to be applied: in the
+ * shared, zero-credential deployment the server holds no token at all, so
+ * "check MAIMEMO_API_TOKEN" would send the user after a variable that does
+ * not exist on this machine.
+ */
 export function errorFromStatus(
   status: number,
   body: string,
   details?: unknown,
+  options: { tokenSource?: "per-request" | "server"; retryAfter?: string } = {},
 ): MaimemoError {
   const snippet = body.slice(0, 500);
+  const apiErrors = parseMaimemoErrors(body);
+  const first = apiErrors[0];
+  const said = first ? ` Maimemo said: ${first.code} — ${first.msg}` : "";
+  const detailPayload = apiErrors.length ? apiErrors : details;
 
   if (status === 401 || status === 403) {
+    const where =
+      options.tokenSource === "per-request"
+        ? "Send it as the `Authorization: Bearer <token>` header from your MCP client."
+        : "Update MAIMEMO_API_TOKEN in the server environment and restart the server.";
     return new MaimemoError(
-      "Maimemo rejected the API token (401/403). Check MAIMEMO_API_TOKEN, or the Bearer token sent by the MCP client. Get a token in the app: \u6211\u7684 \u2192 \u66f4\u591a\u8bbe\u7f6e \u2192 \u5b9e\u9a8c\u529f\u80fd \u2192 \u5f00\u653e API.",
-      { code: "auth", status, details },
+      `Maimemo rejected the API token (${status}).${said} ` +
+        `Get a fresh token in the app: 我的 → 更多设置 → 实验功能 → 开放 API. ${where}`,
+      { code: "auth", status, details: detailPayload },
     );
   }
   if (status === 404) {
-    return new MaimemoError(`Resource not found (404). ${snippet}`, {
+    return new MaimemoError(`Resource not found (404).${said} ${snippet}`, {
       code: "not_found",
       status,
-      details,
+      details: detailPayload,
     });
   }
   if (status === 429) {
+    const wait = options.retryAfter ? ` Retry-After: ${options.retryAfter}.` : "";
     return new MaimemoError(
-      "Maimemo rate limit exceeded (429). The client throttles automatically; retry shortly.",
-      { code: "rate_limit", status, details, retryable: true },
+      `Maimemo rate limit exceeded (429).${said}${wait} ` +
+        `The quota is per token (10s/20, 60s/40, 5h/2000) and this call will not be retried — ` +
+        `wait for the window to reset, then ask for a smaller page size.`,
+      { code: "rate_limit", status, details: detailPayload },
     );
   }
   if (status >= 400 && status < 500) {
-    return new MaimemoError(`Maimemo rejected the request (${status}). ${snippet}`, {
+    return new MaimemoError(`Maimemo rejected the request (${status}).${said} ${snippet}`, {
       code: "invalid_input",
       status,
-      details,
+      details: detailPayload,
     });
   }
   return new MaimemoError(`Maimemo server error (${status}). ${snippet}`, {
     code: "api_error",
     status,
-    details,
+    details: detailPayload,
     retryable: true,
   });
 }
